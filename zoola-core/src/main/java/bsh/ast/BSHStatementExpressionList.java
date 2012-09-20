@@ -23,11 +23,24 @@
  */
 
 
-package bsh;
+package bsh.ast;
 
-public class ReflectError extends Exception
+import bsh.*;
+
+public class BSHStatementExpressionList extends SimpleNode
 {
-	public ReflectError() { super(); }
-	public ReflectError(String s) { super(s); }
-	public ReflectError(String s,Throwable t) { super(s,t); }
+	public BSHStatementExpressionList(int id) { super(id); }
+
+	public Object eval(CallStack callstack, Interpreter interpreter)
+		throws EvalError
+	{
+		int n = jjtGetNumChildren();
+		for(int i=0; i<n; i++)
+		{
+			SimpleNode node = ((SimpleNode)jjtGetChild(i));
+			node.eval(callstack, interpreter);
+		}
+		return Primitive.VOID;
+	}
 }
+

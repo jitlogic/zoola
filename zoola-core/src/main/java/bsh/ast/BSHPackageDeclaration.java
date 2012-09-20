@@ -23,11 +23,26 @@
  */
 
 
-package bsh;
+package bsh.ast;
 
-public class ReflectError extends Exception
+import bsh.*;
+import bsh.ast.BSHAmbiguousName;
+
+public class BSHPackageDeclaration extends SimpleNode
 {
-	public ReflectError() { super(); }
-	public ReflectError(String s) { super(s); }
-	public ReflectError(String s,Throwable t) { super(s,t); }
+
+  public BSHPackageDeclaration(int id) {
+    super(id);
+  }
+
+	public Object eval( CallStack callstack, Interpreter interpreter )
+		throws EvalError
+	{
+		BSHAmbiguousName name = (BSHAmbiguousName)jjtGetChild(0);
+		NameSpace namespace = callstack.top();
+		namespace.setPackage( name.text );
+		// import the package we're in by default...
+		namespace.importPackage( name.text );
+		return Primitive.VOID;
+	}
 }

@@ -41,7 +41,7 @@ import java.util.Hashtable;
 	"foo() = 5;").
 	<p>
 */
-class LHS implements ParserConstants, java.io.Serializable
+public class LHS implements ParserConstants, java.io.Serializable
 {
 	NameSpace nameSpace;
 	/** The assignment should be to a local variable */
@@ -68,7 +68,7 @@ class LHS implements ParserConstants, java.io.Serializable
 /**
 		Variable LHS constructor.
 */
-	LHS( NameSpace nameSpace, String varName )
+	public LHS( NameSpace nameSpace, String varName )
 	{
 throw new Error("namespace lhs");
 /*
@@ -84,7 +84,7 @@ throw new Error("namespace lhs");
 		definition in parent's scope is allowed. (e.g. the default case for
 		undefined vars going to global).
 	*/
-	LHS( NameSpace nameSpace, String varName, boolean localVar )
+	public LHS( NameSpace nameSpace, String varName, boolean localVar )
 	{
 		type = VARIABLE;
 		this.localVar = localVar;
@@ -96,7 +96,7 @@ throw new Error("namespace lhs");
 		Static field LHS Constructor.
 		This simply calls Object field constructor with null object.
 	*/
-	LHS( Field field )
+	public LHS( Field field )
 	{
 		type = FIELD;
 		this.object = null;
@@ -106,7 +106,7 @@ throw new Error("namespace lhs");
 	/**
 		Object field LHS Constructor.
 	*/
-	LHS( Object object, Field field )
+	public LHS( Object object, Field field )
 	{
 		if ( object == null)
 			throw new NullPointerException("constructed empty LHS");
@@ -119,7 +119,7 @@ throw new Error("namespace lhs");
 	/**
 		Object property LHS Constructor.
 	*/
-	LHS( Object object, String propName )
+	public LHS( Object object, String propName )
 	{
 		if(object == null)
 			throw new NullPointerException("constructed empty LHS");
@@ -132,7 +132,7 @@ throw new Error("namespace lhs");
 	/**
 		Array index LHS Constructor.
 	*/
-	LHS( Object array, int index )
+	public LHS( Object array, int index )
 	{
 		if(array == null)
 			throw new NullPointerException("constructed empty LHS");

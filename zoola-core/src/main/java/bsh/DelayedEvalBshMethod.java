@@ -24,6 +24,10 @@
 
 package bsh;
 
+import bsh.ast.BSHBlock;
+import bsh.ast.BSHFormalParameters;
+import bsh.ast.BSHReturnType;
+
 public class DelayedEvalBshMethod extends BshMethod
 {
 	String returnTypeDescriptor;
@@ -53,7 +57,7 @@ public class DelayedEvalBshMethod extends BshMethod
 		String returnTypeDescriptor, BSHReturnType returnTypeNode,
 		String [] paramNames,
 		String [] paramTypeDescriptors, BSHFormalParameters paramTypesNode,
-		BSHBlock methodBody, 
+		BSHBlock methodBody,
 		NameSpace declaringNameSpace, Modifiers modifiers,
 		CallStack callstack, Interpreter interpreter
 	) {

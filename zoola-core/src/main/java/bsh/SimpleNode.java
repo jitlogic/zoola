@@ -40,7 +40,7 @@ package bsh;
 	try to remember to mark these as transient to highlight them.
 
 */
-class SimpleNode implements Node 
+public class SimpleNode implements Node
 {
 	public static SimpleNode JAVACODE =
 		new SimpleNode( -1 ) {

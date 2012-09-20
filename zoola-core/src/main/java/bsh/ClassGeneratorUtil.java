@@ -24,6 +24,7 @@
 
 package bsh;
 
+import bsh.ast.*;
 import org.objectweb.asm.*;
 import org.objectweb.asm.Type;
 
@@ -373,7 +374,7 @@ public class ClassGeneratorUtil implements Opcodes {
 	/**
 	 * Generate a constructor.
 	 */
-	void generateConstructor(int index, String[] paramTypes, int modifiers, ClassWriter cw) {
+	public void generateConstructor(int index, String[] paramTypes, int modifiers, ClassWriter cw) {
 		/** offset after params of the args object [] var */
 		final int argsVar = paramTypes.length + 1;
 		/** offset after params of the ConstructorArgs var */
@@ -878,7 +879,7 @@ public class ClassGeneratorUtil implements Opcodes {
 	 * Register actual context, used by generated class constructor, which calls
 	 * {@link  #initInstance(GeneratedClass, String, Object[])}.
 	 */
-	static void registerConstructorContext(CallStack callstack, Interpreter interpreter) {
+	public static void registerConstructorContext(CallStack callstack, Interpreter interpreter) {
 		if (callstack != null) {
 			CONTEXT_NAMESPACE.set(callstack.top());
 		} else {

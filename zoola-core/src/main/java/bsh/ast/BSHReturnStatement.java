@@ -23,11 +23,26 @@
  */
 
 
-package bsh;
+package bsh.ast;
 
-public class ReflectError extends Exception
+import bsh.*;
+
+public class BSHReturnStatement extends SimpleNode implements ParserConstants
 {
-	public ReflectError() { super(); }
-	public ReflectError(String s) { super(s); }
-	public ReflectError(String s,Throwable t) { super(s,t); }
+	public int kind;
+
+	public BSHReturnStatement(int id) { super(id); }
+
+	public Object eval(CallStack callstack, Interpreter interpreter)
+		throws EvalError
+	{
+		Object value;
+		if(jjtGetNumChildren() > 0)
+			value = ((SimpleNode)jjtGetChild(0)).eval(callstack, interpreter);
+		else
+			value = Primitive.VOID;
+
+		return new ReturnControl( kind, value, this );
+	}
 }
+

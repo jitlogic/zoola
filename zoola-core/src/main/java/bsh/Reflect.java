@@ -45,7 +45,7 @@ import java.util.ArrayList;
 	having to catch the exceptions.  Method lookups are now cached at a high 
 	level so they are less important, however the logic is messy.
 */
-final class Reflect {
+public final class Reflect {
 
 	/**
 	 * Invoke method on arbitrary object instance.
@@ -92,7 +92,7 @@ final class Reflect {
 	 *
 	 * @param args may be null
 	 */
-	static Object invokeMethod(Method method, Object object, Object[] args) throws ReflectError, InvocationTargetException {
+	public static Object invokeMethod(Method method, Object object, Object[] args) throws ReflectError, InvocationTargetException {
 		if (args == null) {
 			args = new Object[0];
 		}
@@ -206,7 +206,7 @@ final class Reflect {
 	}
 
 
-	static LHS getLHSStaticField(Class clas, String fieldName) throws UtilEvalError, ReflectError {
+	public static LHS getLHSStaticField(Class clas, String fieldName) throws UtilEvalError, ReflectError {
 		Field f = resolveExpectedJavaField(clas, fieldName, true/*onlystatic*/);
 		return new LHS(f);
 	}
@@ -218,7 +218,7 @@ final class Reflect {
 	 * This method also deals with the field style property access.
 	 * In the field does not exist we check for a property setter.
 	 */
-	static LHS getLHSObjectField(Object object, String fieldName) throws UtilEvalError, ReflectError {
+	public static LHS getLHSObjectField(Object object, String fieldName) throws UtilEvalError, ReflectError {
 		if (object instanceof This) {
 			// I guess this is when we pass it as an argument?
 			// Setting locally
@@ -537,7 +537,7 @@ final class Reflect {
 	 * flag on the method as necessary.
 	 * <p/>
 	 */
-	static Object constructObject(Class clas, Object[] args) throws ReflectError, InvocationTargetException {
+	public static Object constructObject(Class clas, Object[] args) throws ReflectError, InvocationTargetException {
 		if (clas.isInterface()) {
 			throw new ReflectError("Can't create instance of an interface: " + clas);
 		}

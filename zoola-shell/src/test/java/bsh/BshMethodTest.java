@@ -1,5 +1,6 @@
 package bsh;
 
+import bsh.ast.BSHBlock;
 import junit.framework.Assert;
 
 import org.junit.Test;

@@ -23,11 +23,15 @@
  */
 
 
-package bsh;
+package bsh.ast;
 
-public class ReflectError extends Exception
+import bsh.SimpleNode;
+
+public class BSHPrimitiveType extends SimpleNode
 {
-	public ReflectError() { super(); }
-	public ReflectError(String s) { super(s); }
-	public ReflectError(String s,Throwable t) { super(s,t); }
+	public Class type;
+
+	public BSHPrimitiveType(int id) { super(id); }
+	public Class getType() { return type; }
 }
+

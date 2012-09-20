@@ -31,7 +31,7 @@ package bsh;
 
 
 */
-class Types 
+public class Types
 {
 	/*
 		Type conversion identifiers.  An ASSIGNMENT allows conversions that would
@@ -39,7 +39,7 @@ class Types
 		types (as in an explicit Java cast) and things allowed only in variable and array
 		declarations (e.g. byte b = 42;)
 	*/
-	static final int CAST=0, ASSIGNMENT=1;
+	public static final int CAST=0, ASSIGNMENT=1;
 	
 	static final int 
 		JAVA_BASE_ASSIGNABLE = 1,
@@ -91,7 +91,7 @@ class Types
 	 indicating a loose type and matching anything.
 	 */
 	/* Should check for strict java here and limit to isJavaAssignable() */
-	static boolean isSignatureAssignable( Class[] from, Class[] to, int round )
+	public static boolean isSignatureAssignable( Class[] from, Class[] to, int round )
 	{
 		if ( round != JAVA_VARARGS_ASSIGNABLE && from.length != to.length )
 			return false;
@@ -151,7 +151,7 @@ class Types
 		@param lhsType assigning from rhsType to lhsType
 		@param rhsType assigning from rhsType to lhsType
 	*/
-	static boolean isJavaAssignable( Class lhsType, Class rhsType ) {
+	public static boolean isJavaAssignable( Class lhsType, Class rhsType ) {
 		return isJavaBaseAssignable( lhsType, rhsType )
 			|| isJavaBoxTypesAssignable( lhsType, rhsType );
 	}
@@ -161,7 +161,7 @@ class Types
 		assignment rules, not including auto-boxing/unboxing.
 	 @param rhsType may be null to indicate primitive null value
 	*/
-	static boolean isJavaBaseAssignable( Class<?> lhsType, Class<?> rhsType )
+	public static boolean isJavaBaseAssignable( Class<?> lhsType, Class<?> rhsType )
 	{
 		/*
 			Assignment to loose type, defer to bsh extensions
@@ -222,7 +222,7 @@ class Types
 	/**
 		Determine if the type is assignable via Java boxing/unboxing rules.
 	*/
-	static boolean isJavaBoxTypesAssignable(
+	public static boolean isJavaBoxTypesAssignable(
 		Class lhsType, Class rhsType )
 	{
 		// Assignment to loose type... defer to bsh extensions
@@ -254,7 +254,7 @@ class Types
 	 Test if a type can be converted to another type via BeanShell
 	 extended syntax rules (a superset of Java conversion rules).
 	 */
-	static boolean isBshAssignable( Class toType, Class fromType )
+	public static boolean isBshAssignable( Class toType, Class fromType )
 	{
 		try {
 			return castObject(
@@ -497,7 +497,7 @@ class Types
 		Return a UtilEvalError or UtilTargetError wrapping a ClassCastException
 		describing an illegal assignment or illegal cast, respectively.	
 	*/
-    static UtilEvalError castError( 
+    public static UtilEvalError castError(
 		Class lhsType, Class rhsType, int operation   ) 
     {
 		return castError( 
@@ -505,7 +505,7 @@ class Types
 			Reflect.normalizeClassName(rhsType), operation  );
     }
 
-    static UtilEvalError castError( 
+    public static UtilEvalError castError(
 		String lhs, String rhs, int operation   ) 
     {
 		if ( operation == ASSIGNMENT )

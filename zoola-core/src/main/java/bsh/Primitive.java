@@ -257,7 +257,7 @@ public final class Primitive implements ParserConstants, java.io.Serializable
 			return result;
     }
 
-    static Object binaryOperationImpl( Object lhs, Object rhs, int kind )
+    public static Object binaryOperationImpl( Object lhs, Object rhs, int kind )
         throws UtilEvalError
 	{
         if(lhs instanceof Boolean)
@@ -274,7 +274,7 @@ public final class Primitive implements ParserConstants, java.io.Serializable
             throw new UtilEvalError("Invalid types in binary operator" );
 	}
 
-    static Boolean booleanBinaryOperation(Boolean B1, Boolean B2, int kind)
+    public static Boolean booleanBinaryOperation(Boolean B1, Boolean B2, int kind)
     {
         boolean lhs = B1.booleanValue();
         boolean rhs = B2.booleanValue();
@@ -306,7 +306,7 @@ public final class Primitive implements ParserConstants, java.io.Serializable
     }
 
     // returns Object covering both Long and Boolean return types
-    static Object longBinaryOperation(Long L1, Long L2, int kind)
+    public static Object longBinaryOperation(Long L1, Long L2, int kind)
     {
         long lhs = L1.longValue();
         long rhs = L2.longValue();
@@ -383,7 +383,7 @@ public final class Primitive implements ParserConstants, java.io.Serializable
     }
 
     // returns Object covering both Integer and Boolean return types
-    static Object intBinaryOperation(Integer I1, Integer I2, int kind)
+    public static Object intBinaryOperation(Integer I1, Integer I2, int kind)
     {
         int lhs = I1.intValue();
         int rhs = I2.intValue();
@@ -460,7 +460,7 @@ public final class Primitive implements ParserConstants, java.io.Serializable
     }
 
     // returns Object covering both Double and Boolean return types
-    static Object doubleBinaryOperation(Double D1, Double D2, int kind)
+    public static Object doubleBinaryOperation(Double D1, Double D2, int kind)
         throws UtilEvalError
     {
         double lhs = D1.doubleValue();
@@ -522,7 +522,7 @@ public final class Primitive implements ParserConstants, java.io.Serializable
         }
     }
     // returns Object covering both Long and Boolean return types
-    static Object floatBinaryOperation(Float F1, Float F2, int kind)
+    public static Object floatBinaryOperation(Float F1, Float F2, int kind)
         throws UtilEvalError
     {
         float lhs = F1.floatValue();
@@ -587,7 +587,7 @@ public final class Primitive implements ParserConstants, java.io.Serializable
 	/**
 		Promote primitive wrapper type to to Integer wrapper type
 	*/
-    static Object promoteToInteger(Object wrapper )
+    public static Object promoteToInteger(Object wrapper )
     {
         if(wrapper instanceof Character)
             return new Integer(((Character)wrapper).charValue());
@@ -601,7 +601,7 @@ public final class Primitive implements ParserConstants, java.io.Serializable
 		Promote the pair of primitives to the maximum type of the two.
 		e.g. [int,long]->[long,long]
 	*/
-    static Object[] promotePrimitives(Object lhs, Object rhs)
+    public static Object[] promotePrimitives(Object lhs, Object rhs)
     {
         lhs = promoteToInteger(lhs);
         rhs = promoteToInteger(rhs);
@@ -682,7 +682,7 @@ public final class Primitive implements ParserConstants, java.io.Serializable
 				"An error occurred.  Please call technical support.");
     }
 
-    static boolean booleanUnaryOperation(Boolean B, int kind) 
+    public static boolean booleanUnaryOperation(Boolean B, int kind)
 		throws UtilEvalError
     {
         boolean operand = B.booleanValue();
@@ -695,7 +695,7 @@ public final class Primitive implements ParserConstants, java.io.Serializable
         }
     }
 
-    static int intUnaryOperation(Integer I, int kind)
+    public static int intUnaryOperation(Integer I, int kind)
     {
         int operand = I.intValue();
 
@@ -716,7 +716,7 @@ public final class Primitive implements ParserConstants, java.io.Serializable
         }
     }
 
-    static long longUnaryOperation(Long L, int kind)
+    public static long longUnaryOperation(Long L, int kind)
     {
         long operand = L.longValue();
 
@@ -737,7 +737,7 @@ public final class Primitive implements ParserConstants, java.io.Serializable
         }
     }
 
-    static float floatUnaryOperation(Float F, int kind)
+    public static float floatUnaryOperation(Float F, int kind)
     {
         float operand = F.floatValue();
 
@@ -752,7 +752,7 @@ public final class Primitive implements ParserConstants, java.io.Serializable
         }
     }
 
-    static double doubleUnaryOperation(Double D, int kind)
+    public static double doubleUnaryOperation(Double D, int kind)
     {
         double operand = D.doubleValue();
 

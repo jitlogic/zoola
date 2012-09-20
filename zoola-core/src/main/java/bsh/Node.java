@@ -29,7 +29,7 @@ package bsh;
 	machinery for constructing the parent and child relationships
 	between nodes.
 */
-interface Node extends java.io.Serializable
+public interface Node extends java.io.Serializable
 {
 /**
 	This method is called after the node has been made the current

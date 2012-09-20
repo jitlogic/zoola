@@ -22,12 +22,24 @@
  *
  */
 
+package bsh.ast;
 
-package bsh;
+import bsh.CallStack;
+import bsh.EvalError;
+import bsh.Interpreter;
+import bsh.SimpleNode;
 
-public class ReflectError extends Exception
-{
-	public ReflectError() { super(); }
-	public ReflectError(String s) { super(s); }
-	public ReflectError(String s,Throwable t) { super(s,t); }
+public class BSHSwitchLabel extends SimpleNode {
+	public boolean isDefault;
+
+	public BSHSwitchLabel(int id) { super(id); }
+
+	public Object eval(
+		CallStack callstack, Interpreter interpreter) throws EvalError
+	{
+		if ( isDefault )
+			return null; // should probably error
+		SimpleNode label = ((SimpleNode)jjtGetChild(0));
+		return label.eval( callstack, interpreter );
+	}
 }

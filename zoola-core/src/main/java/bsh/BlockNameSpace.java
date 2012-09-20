@@ -40,7 +40,7 @@ package	bsh;
 	But this has changed a few times so I'd like to leave this abstraction for
 	now.
 */
-class BlockNameSpace extends NameSpace 
+public class BlockNameSpace extends NameSpace
 {
     public BlockNameSpace( NameSpace parent ) 
 		throws EvalError

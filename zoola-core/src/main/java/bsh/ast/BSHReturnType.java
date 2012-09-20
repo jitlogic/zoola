@@ -23,11 +23,37 @@
  */
 
 
-package bsh;
+package bsh.ast;
 
-public class ReflectError extends Exception
+import bsh.*;
+
+public class BSHReturnType extends SimpleNode
 {
-	public ReflectError() { super(); }
-	public ReflectError(String s) { super(s); }
-	public ReflectError(String s,Throwable t) { super(s,t); }
+	public boolean isVoid;
+
+	public BSHReturnType(int id) { super(id); }
+
+	BSHType getTypeNode() {
+		return (BSHType)jjtGetChild(0);
+	}
+
+	public String getTypeDescriptor( 
+		CallStack callstack, Interpreter interpreter, String defaultPackage )
+	{
+		if ( isVoid )
+			return "V";
+		else
+			return getTypeNode().getTypeDescriptor( 
+				callstack, interpreter, defaultPackage );
+	}
+
+	public Class evalReturnType( 
+		CallStack callstack, Interpreter interpreter ) throws EvalError
+	{
+		if ( isVoid )
+			return Void.TYPE;
+		else
+			return getTypeNode().getType( callstack, interpreter );
+	}
 }
+

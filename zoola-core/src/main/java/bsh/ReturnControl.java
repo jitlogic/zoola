@@ -28,7 +28,7 @@ package bsh;
 /**
 	Represents a Return, Break, or Continue statement
 */
-class ReturnControl implements ParserConstants {
+public class ReturnControl implements ParserConstants {
 	public int kind;
 	public Object value;
 	/** The node where we returned... for printing error messages correctly */

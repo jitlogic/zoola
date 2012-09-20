@@ -24,6 +24,8 @@
 
 package bsh;
 
+import bsh.ast.*;
+
 import java.io.*;
 import java.util.*;
 import java.lang.reflect.InvocationTargetException;

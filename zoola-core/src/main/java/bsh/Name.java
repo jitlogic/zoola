@@ -86,7 +86,7 @@ import java.lang.reflect.Method;
 
 	</pre>
 */
-class Name implements java.io.Serializable
+public class Name implements java.io.Serializable
 {
 	// These do not change during evaluation
 	public NameSpace namespace;
@@ -594,7 +594,7 @@ class Name implements java.io.Serializable
 	/**
 		@return the enclosing class body namespace or null if not in a class.
 	*/
-	static NameSpace getClassNameSpace( NameSpace thisNameSpace ) 
+	public static NameSpace getClassNameSpace( NameSpace thisNameSpace )
 	{
 		// is a class instance
 		//if ( thisNameSpace.classInstance != null )

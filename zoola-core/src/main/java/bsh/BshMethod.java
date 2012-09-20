@@ -24,6 +24,9 @@
 
 package bsh;
 
+import bsh.ast.BSHBlock;
+import bsh.ast.BSHMethodDeclaration;
+
 import java.lang.reflect.Method;
 import java.lang.reflect.InvocationTargetException;
 
@@ -73,8 +76,8 @@ public class BshMethod
 
 	// End method components
 
-	BshMethod( 
-		BSHMethodDeclaration method, 
+	public BshMethod(
+		BSHMethodDeclaration method,
 		NameSpace declaringNameSpace, Modifiers modifiers ) 
 	{
 		this( method.name, method.returnType, method.paramsNode.getParamNames(),
@@ -82,7 +85,7 @@ public class BshMethod
 			modifiers );
 	}
 
-	BshMethod( 
+	public BshMethod(
 		String name, Class returnType, String [] paramNames,
 		Class [] paramTypes, BSHBlock methodBody, 
 		NameSpace declaringNameSpace, Modifiers modifiers
@@ -102,7 +105,7 @@ public class BshMethod
 		Create a BshMethod that delegates to a real Java method upon invocation.
 		This is used to represent imported object methods.
 	*/
-	BshMethod( Method method, Object object )
+	public BshMethod( Method method, Object object )
 	{
 		this( method.getName(), method.getReturnType(), null/*paramNames*/,
 			method.getParameterTypes(), null/*method.block*/, 
@@ -198,7 +201,7 @@ public class BshMethod
 			stack instead of creating its own local namespace.  This allows it
 			to be used in constructors.
 	*/
-	Object invoke( 
+	public Object invoke(
 		Object[] argValues, Interpreter interpreter, CallStack callstack,
 			SimpleNode callerInfo, boolean overrideNameSpace ) 
 		throws EvalError 
@@ -250,7 +253,7 @@ public class BshMethod
 				overrideNameSpace );
 	}
 
-	private Object invokeImpl( 
+	private Object invokeImpl(
 		Object[] argValues, Interpreter interpreter, CallStack callstack,
 			SimpleNode callerInfo, boolean overrideNameSpace ) 
 		throws EvalError 

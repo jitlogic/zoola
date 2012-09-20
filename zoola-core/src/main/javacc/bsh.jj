@@ -58,6 +58,8 @@ package bsh;
 import java.io.*;
 import java.util.Vector;
 
+import bsh.ast.*;
+
 /**
 	This is the BeanShell parser.  It is used internally by the Interpreter
 	class (which is probably what you are looking for).  The parser knows
