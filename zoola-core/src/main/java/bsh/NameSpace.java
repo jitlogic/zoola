@@ -25,6 +25,8 @@
 
 package	bsh;
 
+import bsh.ast.SimpleNode;
+
 import java.io.Serializable;
 import java.util.List;
 import java.util.ArrayList;
@@ -102,7 +104,7 @@ public class NameSpace implements Serializable, BshClassManager.Listener, NameSo
 		Note that the namespace is a method body namespace.  This is used for
 		printing stack traces in exceptions.  
 	*/
-	boolean isMethod;
+	public boolean isMethod;
 	/**
 		Note that the namespace is a class body or class instance namespace.  
 		This is used for controlling static/object import precedence, etc.

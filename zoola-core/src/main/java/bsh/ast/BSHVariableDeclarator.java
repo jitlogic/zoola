@@ -26,8 +26,6 @@
 package bsh.ast;
 
 import bsh.*;
-import bsh.ast.BSHArrayInitializer;
-import bsh.ast.BSHType;
 
 /**
 	name [ = initializer ]

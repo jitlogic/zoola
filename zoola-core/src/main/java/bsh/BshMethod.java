@@ -26,6 +26,7 @@ package bsh;
 
 import bsh.ast.BSHBlock;
 import bsh.ast.BSHMethodDeclaration;
+import bsh.ast.SimpleNode;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.InvocationTargetException;
@@ -174,7 +175,7 @@ public class BshMethod
 	*/
 	public Object invoke( 
 		Object[] argValues, Interpreter interpreter, CallStack callstack,
-			SimpleNode callerInfo ) 
+			SimpleNode callerInfo )
 		throws EvalError 
 	{
 		return invoke( argValues, interpreter, callstack, callerInfo, false );

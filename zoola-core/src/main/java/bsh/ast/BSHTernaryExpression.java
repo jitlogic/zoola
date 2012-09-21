@@ -28,8 +28,6 @@ package bsh.ast;
 import bsh.CallStack;
 import bsh.EvalError;
 import bsh.Interpreter;
-import bsh.SimpleNode;
-import bsh.ast.BSHIfStatement;
 
 /**
 	This class needs logic to prevent the right hand side of boolean logical

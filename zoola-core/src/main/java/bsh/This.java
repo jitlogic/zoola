@@ -25,7 +25,8 @@
 
 package bsh;
 
-import java.io.IOException;
+import bsh.ast.SimpleNode;
+
 import java.lang.reflect.*;
 import java.util.Map;
 import java.util.HashMap;
@@ -303,7 +304,7 @@ public final class This implements java.io.Serializable, Runnable
 	*/
 	public Object invokeMethod( 
 		String methodName, Object [] args, 
-		Interpreter interpreter, CallStack callstack, SimpleNode callerInfo, 
+		Interpreter interpreter, CallStack callstack, SimpleNode callerInfo,
 		boolean declaredOnly  ) 
 		throws EvalError
 	{

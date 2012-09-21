@@ -24,6 +24,8 @@
 
 package bsh;
 
+import bsh.ast.SimpleNode;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -1141,7 +1143,7 @@ public class Interpreter
 		sourcing and from what file a method was originally parsed.  One
 		file may call a method sourced from another file.  See SimpleNode
 		for origination file info.
-		@see bsh.SimpleNode#getSourceFile()
+		@see bsh.ast.SimpleNode#getSourceFile()
 	*/
 	public String getSourceFileInfo() { 
 		if ( sourceFileInfo != null )

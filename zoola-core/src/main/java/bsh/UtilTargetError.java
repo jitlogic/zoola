@@ -25,6 +25,8 @@
 
 package bsh;
 
+import bsh.ast.SimpleNode;
+
 /**
 	UtilTargetError is an error corresponding to a TargetError but thrown by a 
 	utility or other class that does not have the caller context (Node) 
@@ -51,7 +53,7 @@ public class UtilTargetError extends UtilEvalError
 		Override toEvalError to throw TargetError type.
 	*/
 	public EvalError toEvalError( 
-		String msg, SimpleNode node, CallStack callstack  ) 
+		String msg, SimpleNode node, CallStack callstack  )
 	{
 		if ( msg == null )
 			msg = getMessage();

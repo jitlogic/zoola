@@ -25,10 +25,6 @@
 package bsh.ast;
 
 import bsh.*;
-import bsh.ast.BSHAmbiguousName;
-import bsh.ast.BSHBlock;
-import bsh.ast.BSHFormalParameters;
-import bsh.ast.BSHReturnType;
 
 public class BSHMethodDeclaration extends SimpleNode
 {

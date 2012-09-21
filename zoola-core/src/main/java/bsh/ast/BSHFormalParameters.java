@@ -27,8 +27,6 @@ package bsh.ast;
 import bsh.CallStack;
 import bsh.EvalError;
 import bsh.Interpreter;
-import bsh.SimpleNode;
-import bsh.ast.BSHFormalParameter;
 
 public class BSHFormalParameters extends SimpleNode
 {

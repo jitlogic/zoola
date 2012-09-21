@@ -24,6 +24,8 @@
 
 package bsh;
 
+import bsh.ast.Node;
+
 class JJTParserState {
   private java.util.Stack nodes;
   private java.util.Stack marks;

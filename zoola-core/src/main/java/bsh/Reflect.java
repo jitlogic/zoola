@@ -24,6 +24,8 @@
 
 package bsh;
 
+import bsh.ast.SimpleNode;
+
 import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;

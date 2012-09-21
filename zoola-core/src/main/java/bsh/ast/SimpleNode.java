@@ -23,21 +23,24 @@
  */
 
 
-package bsh;
-/*
-	Note: great care (and lots of typing) were taken to insure that the
-	namespace and interpreter references are passed on the stack and not 
-	(as they were erroneously before) installed in instance variables...
-	Each of these node objects must be re-entrable to allow for recursive 
-	situations.
+package bsh.ast;
 
-	The only data which should really be stored in instance vars here should 
-	be parse tree data... features of the node which should never change (e.g.
-	the number of arguments, etc.)
-	
-	Exceptions would be public fields of simple classes that just publish
-	data produced by the last eval()... data that is used immediately. We'll
-	try to remember to mark these as transient to highlight them.
+import bsh.*;
+
+/*
+    Note: great care (and lots of typing) were taken to insure that the
+    namespace and interpreter references are passed on the stack and not
+    (as they were erroneously before) installed in instance variables...
+    Each of these node objects must be re-entrable to allow for recursive
+    situations.
+
+    The only data which should really be stored in instance vars here should
+    be parse tree data... features of the node which should never change (e.g.
+    the number of arguments, etc.)
+
+    Exceptions would be public fields of simple classes that just publish
+    data produced by the last eval()... data that is used immediately. We'll
+    try to remember to mark these as transient to highlight them.
 
 */
 public class SimpleNode implements Node
@@ -60,7 +63,7 @@ public class SimpleNode implements Node
 	protected Node parent;
 	protected Node[] children;
 	protected int id;
-	Token firstToken, lastToken;
+	public Token firstToken, lastToken;
 
 	/** the source of the text from which this was parsed */
 	String sourceFile;
@@ -146,7 +149,7 @@ public class SimpleNode implements Node
 	/**
 		This is the general signature for evaluation of a node.
 	*/
-	public Object eval( CallStack callstack, Interpreter interpreter ) 
+	public Object eval( CallStack callstack, Interpreter interpreter )
 		throws EvalError
 	{
 		throw new InterpreterError(

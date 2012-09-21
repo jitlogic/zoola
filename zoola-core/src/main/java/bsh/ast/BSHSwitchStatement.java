@@ -25,7 +25,6 @@
 package bsh.ast;
 
 import bsh.*;
-import bsh.ast.BSHSwitchLabel;
 
 public class BSHSwitchStatement
 	extends SimpleNode

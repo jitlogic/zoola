@@ -26,8 +26,6 @@
 package bsh.ast;
 
 import bsh.*;
-import bsh.ast.BSHAmbiguousName;
-import bsh.ast.BSHPrimitiveType;
 
 import java.lang.reflect.Array;
 

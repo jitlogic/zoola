@@ -26,7 +26,6 @@
 package bsh.ast;
 
 import bsh.*;
-import bsh.ast.BSHIfStatement;
 
 /**
 	Implementation of the for(;;) statement.

@@ -25,8 +25,6 @@
 
 package bsh.ast;
 
-import bsh.SimpleNode;
-
 public class BSHPrimitiveType extends SimpleNode
 {
 	public Class type;

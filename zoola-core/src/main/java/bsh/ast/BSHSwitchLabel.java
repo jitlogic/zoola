@@ -27,7 +27,6 @@ package bsh.ast;
 import bsh.CallStack;
 import bsh.EvalError;
 import bsh.Interpreter;
-import bsh.SimpleNode;
 
 public class BSHSwitchLabel extends SimpleNode {
 	public boolean isDefault;

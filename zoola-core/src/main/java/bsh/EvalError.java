@@ -25,6 +25,8 @@
 
 package bsh;
 
+import bsh.ast.SimpleNode;
+
 /**
 	EvalError indicates that we cannot continue evaluating the script
 	or the script has thrown an exception.

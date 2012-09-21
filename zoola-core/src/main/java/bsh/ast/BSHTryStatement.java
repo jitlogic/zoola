@@ -26,8 +26,6 @@
 package bsh.ast;
 
 import bsh.*;
-import bsh.ast.BSHBlock;
-import bsh.ast.BSHFormalParameter;
 
 import java.util.List;
 import java.util.ArrayList;

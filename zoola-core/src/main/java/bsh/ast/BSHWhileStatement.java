@@ -25,7 +25,6 @@
 package bsh.ast;
 
 import bsh.*;
-import bsh.ast.BSHIfStatement;
 
 /**
  * This class handles both {@code while} statements and {@code do..while} statements.

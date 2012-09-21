@@ -26,7 +26,6 @@
 package bsh.ast;
 
 import bsh.*;
-import bsh.ast.BSHPrimaryExpression;
 
 public class BSHUnaryExpression extends SimpleNode implements ParserConstants
 {

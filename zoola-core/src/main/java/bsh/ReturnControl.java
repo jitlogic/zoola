@@ -25,6 +25,8 @@
 
 package bsh;
 
+import bsh.ast.SimpleNode;
+
 /**
 	Represents a Return, Break, or Continue statement
 */

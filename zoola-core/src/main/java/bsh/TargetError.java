@@ -25,6 +25,8 @@
 
 package bsh;
 
+import bsh.ast.SimpleNode;
+
 import java.lang.reflect.InvocationTargetException;
 
 import java.io.PrintStream;
@@ -45,7 +47,7 @@ public final class TargetError extends EvalError
 	private final boolean inNativeCode;
 
 	public TargetError(
-		String msg, Throwable t, SimpleNode node, CallStack callstack, 
+		String msg, Throwable t, SimpleNode node, CallStack callstack,
 		boolean inNativeCode )
 	{
 		super( msg, node, callstack, t );

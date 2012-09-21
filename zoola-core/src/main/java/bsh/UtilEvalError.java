@@ -25,6 +25,8 @@
 
 package bsh;
 
+import bsh.ast.SimpleNode;
+
 /**
 	UtilEvalError is an error corresponding to an EvalError but thrown by a 
 	utility or other class that does not have the caller context (Node) 
@@ -63,12 +65,12 @@ public class UtilEvalError extends Exception
 	/**
 		Re-throw as an eval error, prefixing msg to the message and specifying
 		the node.  If a node already exists the addNode is ignored.
-		@see #setNode( bsh.SimpleNode )
+		@see #setNode(bsh.ast.SimpleNode)
 		<p>
 		@param msg may be null for no additional message.
 	*/
 	public EvalError toEvalError( 
-		String msg, SimpleNode node, CallStack callstack  ) 
+		String msg, SimpleNode node, CallStack callstack  )
 	{
 		if ( Interpreter.DEBUG )
 			printStackTrace();

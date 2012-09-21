@@ -22,7 +22,7 @@
  *
  */
 
-package bsh;
+package bsh.ast;
 
 /*
 	All BSH nodes must implement this interface.  It provides basic

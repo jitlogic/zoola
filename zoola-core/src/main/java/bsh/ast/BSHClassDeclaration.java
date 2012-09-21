@@ -25,8 +25,6 @@
 package bsh.ast;
 
 import bsh.*;
-import bsh.ast.BSHAmbiguousName;
-import bsh.ast.BSHBlock;
 
 /**
 */

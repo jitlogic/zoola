@@ -26,7 +26,6 @@
 package bsh.ast;
 
 import bsh.*;
-import bsh.ast.BSHAmbiguousName;
 
 public class BSHImportDeclaration extends SimpleNode
 {

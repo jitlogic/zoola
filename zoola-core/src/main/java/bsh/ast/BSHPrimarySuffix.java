@@ -26,9 +26,6 @@
 package bsh.ast;
 
 import bsh.*;
-import bsh.ast.BSHAmbiguousName;
-import bsh.ast.BSHArguments;
-import bsh.ast.BSHType;
 
 import java.lang.reflect.Array;
 import java.lang.reflect.InvocationTargetException;

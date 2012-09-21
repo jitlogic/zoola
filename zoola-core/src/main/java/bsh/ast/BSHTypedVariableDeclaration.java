@@ -25,8 +25,6 @@
 package bsh.ast;
 
 import bsh.*;
-import bsh.ast.BSHType;
-import bsh.ast.BSHVariableDeclarator;
 
 public class BSHTypedVariableDeclaration extends SimpleNode
 {
