@@ -37,8 +37,8 @@ public class BSHPrimaryExpression extends SimpleNode
 	public Object eval( CallStack callstack, Interpreter interpreter)
 		throws EvalError
 	{
-		return eval( false, callstack, interpreter );
-	}
+        return this.accept(new BshEvaluatingVisitor(callstack, interpreter));
+    }
 
 	/**
 		Evaluate to a value object.
@@ -62,7 +62,7 @@ public class BSHPrimaryExpression extends SimpleNode
 		opportunity to work through them.  This lets the suffixes decide
 		how to interpret an ambiguous name (e.g. for the .class operation).
 	*/
-	private Object eval( boolean toLHS, 
+	public Object eval( boolean toLHS,
 		CallStack callstack, Interpreter interpreter)  
 		throws EvalError
 	{
@@ -107,5 +107,10 @@ public class BSHPrimaryExpression extends SimpleNode
 		else
 			return obj;
 	}
+
+    public <T> T accept(BshNodeVisitor<T> visitor) {
+        return visitor.visit(this);
+    }
+
 }
 

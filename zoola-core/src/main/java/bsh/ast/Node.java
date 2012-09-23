@@ -24,10 +24,12 @@
 
 package bsh.ast;
 
+import bsh.BshNodeVisitor;
+
 /*
-	All BSH nodes must implement this interface.  It provides basic
-	machinery for constructing the parent and child relationships
-	between nodes.
+    All BSH nodes must implement this interface.  It provides basic
+    machinery for constructing the parent and child relationships
+    between nodes.
 */
 public interface Node extends java.io.Serializable
 {
@@ -66,5 +68,7 @@ public interface Node extends java.io.Serializable
 	Return the number of children the node has.
 */
 	public int jjtGetNumChildren();
+
+    public <T> T accept(BshNodeVisitor<T> visitor);
 }
 

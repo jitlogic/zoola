@@ -63,5 +63,10 @@ public class BSHArguments extends SimpleNode
 
         return args;
     }
+
+    public <T> T accept(BshNodeVisitor<T> visitor) {
+        return visitor.visit(this);
+    }
+
 }
 

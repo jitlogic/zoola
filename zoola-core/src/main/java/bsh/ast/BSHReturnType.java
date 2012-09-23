@@ -55,5 +55,10 @@ public class BSHReturnType extends SimpleNode
 		else
 			return getTypeNode().getType( callstack, interpreter );
 	}
+
+    public <T> T accept(BshNodeVisitor<T> visitor) {
+        return visitor.visit(this);
+    }
+
 }
 

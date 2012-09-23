@@ -37,25 +37,10 @@ public class BSHUnaryExpression extends SimpleNode implements ParserConstants
     public Object eval( CallStack callstack, Interpreter interpreter)
 		throws EvalError
     {
-        SimpleNode node = (SimpleNode)jjtGetChild(0);
-
-		// If this is a unary increment of decrement (either pre or postfix)
-		// then we need an LHS to which to assign the result.  Otherwise
-		// just do the unary operation for the value.
-		try {
-			if ( kind == INCR || kind == DECR ) {
-				LHS lhs = ((BSHPrimaryExpression)node).toLHS(
-					callstack, interpreter );
-				return lhsUnaryOperation( lhs, interpreter.getStrictJava() );
-			} else
-				return 
-					unaryOperation( node.eval(callstack, interpreter), kind );
-		} catch ( UtilEvalError e ) {
-			throw e.toEvalError( this, callstack );
-		}
+        return this.accept(new BshEvaluatingVisitor(callstack, interpreter));
     }
 
-    private Object lhsUnaryOperation( LHS lhs, boolean strictJava ) 
+    public Object lhsUnaryOperation( LHS lhs, boolean strictJava )
 		throws UtilEvalError
     {
         if ( Interpreter.DEBUG ) Interpreter.debug("lhsUnaryOperation");
@@ -73,7 +58,7 @@ public class BSHUnaryExpression extends SimpleNode implements ParserConstants
 		return retVal;
     }
 
-    private Object unaryOperation( Object op, int kind ) throws UtilEvalError
+    public Object unaryOperation( Object op, int kind ) throws UtilEvalError
     {
         if (op instanceof Boolean || op instanceof Character 
 			|| op instanceof Number)
@@ -123,4 +108,9 @@ public class BSHUnaryExpression extends SimpleNode implements ParserConstants
         else
             throw new InterpreterError("An error occurred.  Please call technical support.");
     }
+
+    public <T> T accept(BshNodeVisitor<T> visitor) {
+        return visitor.visit(this);
+    }
+
 }

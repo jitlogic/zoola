@@ -87,13 +87,16 @@ public class BSHAmbiguousName extends SimpleNode
     public Object eval( CallStack callstack, Interpreter interpreter ) 
 		throws EvalError
     {
-		throw new InterpreterError( 
-			"Don't know how to eval an ambiguous name!"
-			+"  Use toObject() if you want an object." );
+        return this.accept(new BshEvaluatingVisitor(callstack, interpreter));
     }
 
 	public String toString() {
 		return "AmbigousName: "+text;
 	}
+
+    public <T> T accept(BshNodeVisitor<T> visitor) {
+        return visitor.visit(this);
+    }
+
 }
 

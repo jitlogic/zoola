@@ -443,6 +443,8 @@ public class Interpreter
 		// init the callstack.  
 		CallStack callstack = new CallStack( globalNameSpace );
 
+        BshEvaluatingVisitor evaluator = new BshEvaluatingVisitor(callstack, this);
+
 		SimpleNode node = null;
 		boolean eof = false;
 		while( !eof )
@@ -469,7 +471,7 @@ public class Interpreter
 					if(DEBUG)
 						node.dump(">");
 
-					Object ret = node.eval( callstack, this );
+                    Object ret = node.accept(evaluator);
 
 					node.lastToken.next = null;  // prevent OutOfMemoryError
 				
@@ -635,7 +637,9 @@ public class Interpreter
 
 		CallStack callstack = new CallStack( nameSpace );
 
-		SimpleNode node = null;
+        BshEvaluatingVisitor evaluator = new BshEvaluatingVisitor(callstack, localInterpreter);
+
+        SimpleNode node = null;
 		boolean eof = false;
 		while(!eof)
 		{
@@ -654,7 +658,8 @@ public class Interpreter
 					if ( TRACE )
 						println( "// " +node.getText() );
 
-					retVal = node.eval( callstack, localInterpreter );
+
+                    retVal = node.accept(evaluator);
 
 					// sanity check during development
 					if ( callstack.depth() > 1 )

@@ -37,7 +37,7 @@ import bsh.ast.SimpleNode;
 	
 	@see TargetError
 */
-public class EvalError extends Exception 
+public class EvalError extends Error
 {
 	private SimpleNode node;
 

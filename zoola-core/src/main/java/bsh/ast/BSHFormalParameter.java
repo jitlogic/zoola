@@ -56,12 +56,12 @@ public class BSHFormalParameter extends SimpleNode
 	public Object eval( CallStack callstack, Interpreter interpreter) 
 		throws EvalError
 	{
-		if ( jjtGetNumChildren() > 0 )
-			type = ((BSHType)jjtGetChild(0)).getType( callstack, interpreter );
-		else
-			type = UNTYPED;
+        return this.accept(new BshEvaluatingVisitor(callstack, interpreter));
+    }
 
-		return type;
-	}
+    public <T> T accept(BshNodeVisitor<T> visitor) {
+        return visitor.visit(this);
+    }
+
 }
 

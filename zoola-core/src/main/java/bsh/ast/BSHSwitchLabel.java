@@ -24,9 +24,7 @@
 
 package bsh.ast;
 
-import bsh.CallStack;
-import bsh.EvalError;
-import bsh.Interpreter;
+import bsh.*;
 
 public class BSHSwitchLabel extends SimpleNode {
 	public boolean isDefault;
@@ -36,9 +34,11 @@ public class BSHSwitchLabel extends SimpleNode {
 	public Object eval(
 		CallStack callstack, Interpreter interpreter) throws EvalError
 	{
-		if ( isDefault )
-			return null; // should probably error
-		SimpleNode label = ((SimpleNode)jjtGetChild(0));
-		return label.eval( callstack, interpreter );
-	}
+        return this.accept(new BshEvaluatingVisitor(callstack, interpreter));
+    }
+
+    public <T> T accept(BshNodeVisitor<T> visitor) {
+        return visitor.visit(this);
+    }
+
 }

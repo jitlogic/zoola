@@ -78,7 +78,7 @@ public class BSHMethodDeclaration extends SimpleNode
 		Evaluate the return type node.
 		@return the type or null indicating loosely typed return
 	*/
-	Class evalReturnType( CallStack callstack, Interpreter interpreter )
+	public Class evalReturnType( CallStack callstack, Interpreter interpreter )
 		throws EvalError
 	{
 		insureNodesParsed();
@@ -111,29 +111,10 @@ public class BSHMethodDeclaration extends SimpleNode
 	public Object eval( CallStack callstack, Interpreter interpreter )
 		throws EvalError
 	{
-		returnType = evalReturnType( callstack, interpreter );
-		evalNodes( callstack, interpreter );
+        return this.accept(new BshEvaluatingVisitor(callstack, interpreter));
+    }
 
-		// Install an *instance* of this method in the namespace.
-		// See notes in BshMethod 
-
-// This is not good...
-// need a way to update eval without re-installing...
-// so that we can re-eval params, etc. when classloader changes
-// look into this
-
-		NameSpace namespace = callstack.top();
-		BshMethod bshMethod = new BshMethod( this, namespace, modifiers );
-		try {
-			namespace.setMethod( bshMethod );
-		} catch ( UtilEvalError e ) {
-			throw e.toEvalError(this,callstack);
-		}
-
-		return Primitive.VOID;
-	}
-
-	private void evalNodes( CallStack callstack, Interpreter interpreter ) 
+	public void evalNodes( CallStack callstack, Interpreter interpreter )
 		throws EvalError
 	{
 		insureNodesParsed();
@@ -169,4 +150,9 @@ public class BSHMethodDeclaration extends SimpleNode
 	public String toString() {
 		return "MethodDeclaration: "+name;
 	}
+
+    public <T> T accept(BshNodeVisitor<T> visitor) {
+        return visitor.visit(this);
+    }
+
 }

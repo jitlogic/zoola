@@ -24,9 +24,7 @@
 
 package bsh.ast;
 
-import bsh.CallStack;
-import bsh.EvalError;
-import bsh.Interpreter;
+import bsh.*;
 
 public class BSHFormalParameters extends SimpleNode
 {
@@ -41,7 +39,7 @@ public class BSHFormalParameters extends SimpleNode
 
 	public BSHFormalParameters(int id) { super(id); }
 
-	void insureParsed() 
+	public void insureParsed()
 	{
 		if ( paramNames != null )
 			return;
@@ -90,21 +88,12 @@ public class BSHFormalParameters extends SimpleNode
 	public Object eval( CallStack callstack, Interpreter interpreter )  
 		throws EvalError
 	{
-		if ( paramTypes != null )
-			return paramTypes;
+        return this.accept(new BshEvaluatingVisitor(callstack, interpreter));
+    }
 
-		insureParsed();
-		Class [] paramTypes = new Class[numArgs];
+    public <T> T accept(BshNodeVisitor<T> visitor) {
+        return visitor.visit(this);
+    }
 
-		for(int i=0; i<numArgs; i++)
-		{
-			BSHFormalParameter param = (BSHFormalParameter)jjtGetChild(i);
-			paramTypes[i] = (Class)param.eval( callstack, interpreter );
-		}
-
-		this.paramTypes = paramTypes;
-
-		return paramTypes;
-	}
 }
 

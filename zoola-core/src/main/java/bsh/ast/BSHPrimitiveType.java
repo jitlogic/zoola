@@ -25,11 +25,17 @@
 
 package bsh.ast;
 
+import bsh.BshNodeVisitor;
+
 public class BSHPrimitiveType extends SimpleNode
 {
 	public Class type;
 
 	public BSHPrimitiveType(int id) { super(id); }
 	public Class getType() { return type; }
+
+    public <T> T accept(BshNodeVisitor<T> visitor) {
+        return visitor.visit(this);
+    }
 }
 

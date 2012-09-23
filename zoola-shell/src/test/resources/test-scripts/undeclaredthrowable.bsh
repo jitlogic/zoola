@@ -7,7 +7,7 @@ import bsh.*;
 i=new Interpreter();
 r=i.eval(
 	"return new Runnable() {"
-	+"void run() { throw new EvalError(\"foo\"); } }");
+	+"void run() { throw new InterruptedException(\"foo\"); } }");
 try {
 	r.run();
 } catch ( e ) {

@@ -293,5 +293,10 @@ public class BSHPrimarySuffix extends SimpleNode
 			throw new EvalError("No such property: " + value, this, callstack );
 		}
 	}
+
+    public <T> T accept(BshNodeVisitor<T> visitor) {
+        return visitor.visit(this);
+    }
+
 }
 

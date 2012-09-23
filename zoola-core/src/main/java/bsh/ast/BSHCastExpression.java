@@ -44,22 +44,11 @@ public class BSHCastExpression extends SimpleNode {
 	public Object eval(
 		CallStack callstack, Interpreter interpreter ) throws EvalError
     {
-		NameSpace namespace = callstack.top();
-        Class toType = ((BSHType)jjtGetChild(0)).getType( 
-			callstack, interpreter );
-		SimpleNode expression = (SimpleNode)jjtGetChild(1);
+        return this.accept(new BshEvaluatingVisitor(callstack, interpreter));
+    }
 
-        // evaluate the expression
-        Object fromValue = expression.eval(callstack, interpreter);
-        Class fromType = fromValue.getClass();
-
-		// TODO: need to add isJavaCastable() test for strictJava
-		// (as opposed to isJavaAssignable())
-		try {
-			return Types.castObject( fromValue, toType, Types.CAST );
-		} catch ( UtilEvalError e ) {
-			throw e.toEvalError( this, callstack  );
-		}
+    public <T> T accept(BshNodeVisitor<T> visitor) {
+        return visitor.visit(this);
     }
 
 }

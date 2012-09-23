@@ -208,4 +208,9 @@ public class BSHType extends SimpleNode
 		else
 			return "L"+ name.replace('.','/') +";";
 	}
+
+    public <T> T accept(BshNodeVisitor<T> visitor) {
+        return visitor.visit(this);
+    }
+
 }

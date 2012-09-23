@@ -86,4 +86,9 @@ public class BSHVariableDeclarator extends SimpleNode
     }
 
 	public String toString() { return "BSHVariableDeclarator "+name; }
+
+    public <T> T accept(BshNodeVisitor<T> visitor) {
+        return visitor.visit(this);
+    }
+
 }

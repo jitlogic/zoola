@@ -36,13 +36,12 @@ public class BSHReturnStatement extends SimpleNode implements ParserConstants
 	public Object eval(CallStack callstack, Interpreter interpreter)
 		throws EvalError
 	{
-		Object value;
-		if(jjtGetNumChildren() > 0)
-			value = ((SimpleNode)jjtGetChild(0)).eval(callstack, interpreter);
-		else
-			value = Primitive.VOID;
+        return this.accept(new BshEvaluatingVisitor(callstack, interpreter));
+    }
 
-		return new ReturnControl( kind, value, this );
-	}
+    public <T> T accept(BshNodeVisitor<T> visitor) {
+        return visitor.visit(this);
+    }
+
 }
 

@@ -38,8 +38,9 @@ public class DelayedEvalBshMethod extends BshMethod
 	// used for the delayed evaluation...
 	transient CallStack callstack;
 	transient Interpreter interpreter;
+    transient BshEvaluatingVisitor evaluator;
 
-	/**
+    /**
 		This constructor is used in class generation.  It supplies String type
 		descriptors for return and parameter class types and allows delay of 
 		the evaluation of those types until they are requested.  It does this
@@ -70,6 +71,8 @@ public class DelayedEvalBshMethod extends BshMethod
 		this.paramTypesNode = paramTypesNode;
 		this.callstack = callstack;
 		this.interpreter = interpreter;
+
+        this.evaluator = new BshEvaluatingVisitor(callstack, interpreter);
 	}
 
 	public String getReturnTypeDescriptor() { return returnTypeDescriptor; }
@@ -93,7 +96,7 @@ public class DelayedEvalBshMethod extends BshMethod
 	{ 
 		// BSHFormalParameters will cache the type for us
 		try {
-			return (Class [])paramTypesNode.eval( callstack, interpreter );
+            return (Class[])paramTypesNode.accept(evaluator);
 		} catch ( EvalError e ) {
 			throw new InterpreterError("can't eval param types: "+e);
 		}

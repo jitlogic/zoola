@@ -25,9 +25,7 @@
 
 package bsh.ast;
 
-import bsh.CallStack;
-import bsh.EvalError;
-import bsh.Interpreter;
+import bsh.*;
 
 /**
 	This class needs logic to prevent the right hand side of boolean logical
@@ -41,15 +39,11 @@ public class BSHTernaryExpression extends SimpleNode {
     public Object eval( CallStack callstack, Interpreter interpreter)
 		throws EvalError
     {
-        SimpleNode
-			cond = (SimpleNode)jjtGetChild(0),
-			evalTrue = (SimpleNode)jjtGetChild(1),
-			evalFalse = (SimpleNode)jjtGetChild(2);
+        return this.accept(new BshEvaluatingVisitor(callstack, interpreter));
+    }
 
-		if ( BSHIfStatement.evaluateCondition(cond, callstack, interpreter) )
-			return evalTrue.eval( callstack, interpreter );
-		else
-			return evalFalse.eval( callstack, interpreter );
+    public <T> T accept(BshNodeVisitor<T> visitor) {
+        return visitor.visit(this);
     }
 
 }

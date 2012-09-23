@@ -37,33 +37,14 @@ public class BSHAllocationExpression extends SimpleNode
 {
     public BSHAllocationExpression(int id) { super(id); }
 	private static int innerClassCount = 0;
-	
+
     public Object eval( CallStack callstack, Interpreter interpreter)
 		throws EvalError
     {
-        // type is either a class name or a primitive type
-        SimpleNode type = (SimpleNode)jjtGetChild(0);
-
-        // args is either constructor arguments or array dimensions
-        SimpleNode args = (SimpleNode)jjtGetChild(1);
-
-        if ( type instanceof BSHAmbiguousName)
-        {
-            BSHAmbiguousName name = (BSHAmbiguousName)type;
-
-            if (args instanceof BSHArguments)
-                return objectAllocation(name, (BSHArguments)args, 
-					callstack, interpreter );
-            else
-                return objectArrayAllocation(name, (BSHArrayDimensions)args,
-					callstack, interpreter );
-        }
-        else
-            return primitiveArrayAllocation((BSHPrimitiveType)type,
-                (BSHArrayDimensions)args, callstack, interpreter );
+        return this.accept(new BshEvaluatingVisitor(callstack, interpreter));
     }
 
-    private Object objectAllocation(
+    public Object objectAllocation(
 		BSHAmbiguousName nameNode, BSHArguments argumentsNode, 
 		CallStack callstack, Interpreter interpreter 
 	) 
@@ -197,7 +178,7 @@ public class BSHAllocationExpression extends SimpleNode
 		return local.getThis(interpreter).getInterface( type );
 	}
 
-    private Object objectArrayAllocation(
+    public Object objectArrayAllocation(
 		BSHAmbiguousName nameNode, BSHArrayDimensions dimensionsNode, 
 		CallStack callstack, Interpreter interpreter 
 	) 
@@ -212,7 +193,7 @@ public class BSHAllocationExpression extends SimpleNode
 		return arrayAllocation( dimensionsNode, type, callstack, interpreter );
     }
 
-    private Object primitiveArrayAllocation(
+    public Object primitiveArrayAllocation(
 		BSHPrimitiveType typeNode, BSHArrayDimensions dimensionsNode, 
 		CallStack callstack, Interpreter interpreter 
 	) 
@@ -291,4 +272,9 @@ public class BSHAllocationExpression extends SimpleNode
                 e.getMessage(), this, callstack);
         }
 	}
+
+    public <T> T accept(BshNodeVisitor<T> visitor) {
+        return visitor.visit(this);
+    }
+
 }

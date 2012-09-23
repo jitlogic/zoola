@@ -137,4 +137,8 @@ public class BSHArrayInitializer extends SimpleNode
 			+" at position: "+argNum, this, callstack );
 	}
 
+    public <T> T accept(BshNodeVisitor<T> visitor) {
+        return visitor.visit(this);
+    }
+
 }

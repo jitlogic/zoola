@@ -36,8 +36,8 @@ public class BSHBlock extends SimpleNode
 	public Object eval( CallStack callstack, Interpreter interpreter)
 		throws EvalError
 	{
-		return eval( callstack, interpreter, false );
-	}
+        return this.accept(new BshEvaluatingVisitor(callstack, interpreter));
+    }
 
 	/**
 		@param overrideNamespace if set to true the block will be executed
@@ -137,6 +137,10 @@ public class BSHBlock extends SimpleNode
 	public interface NodeFilter {
 		public boolean isVisible( SimpleNode node );
 	}
+
+    public <T> T accept(BshNodeVisitor<T> visitor) {
+        return visitor.visit(this);
+    }
 
 }
 

@@ -45,21 +45,20 @@ public class BSHClassDeclaration extends SimpleNode
 	public int numInterfaces;
 	public boolean extend;
 	public boolean isInterface;
-	private Class<?> generatedClass;
+	public Class<?> generatedClass;
 
 	public BSHClassDeclaration(int id) { super(id); }
 
 	/**
 	*/
-	public synchronized Object eval(final CallStack callstack, final Interpreter interpreter ) throws EvalError {
-		if (generatedClass == null) {
-			generatedClass = generateClass(callstack, interpreter);
-		}
-		return generatedClass;
-	}
+	public synchronized Object eval(final CallStack callstack, final Interpreter interpreter )
+            throws EvalError
+    {
+        return this.accept(new BshEvaluatingVisitor(callstack, interpreter));
+    }
 
 
-	private Class<?> generateClass(final CallStack callstack, final Interpreter interpreter) throws EvalError {
+	public Class<?> generateClass(final CallStack callstack, final Interpreter interpreter) throws EvalError {
 		int child = 0;
 
 		// resolve superclass if any
@@ -96,4 +95,9 @@ public class BSHClassDeclaration extends SimpleNode
 	public String toString() {
 		return "ClassDeclaration: " + name;
 	}
+
+    public <T> T accept(BshNodeVisitor<T> visitor) {
+        return visitor.visit(this);
+    }
+
 }

@@ -987,7 +987,7 @@ public class ClassGeneratorUtil implements Opcodes {
 			if (constructor != null) {
 				constructor.invoke(args, interpreter, callstack, null/*callerInfo*/, false/*overrideNameSpace*/);
 			}
-		} catch (Exception e) {
+		} catch (Throwable e) {
 			if (e instanceof TargetError) {
 				e = (Exception) ((TargetError) e).getTarget();
 			}
