@@ -22,25 +22,20 @@
  *
  */
 
+package bsh.ast;
 
-package bsh;
+import bsh.BshNodeVisitor;
 
-import java.io.*;
+public class BSHFormalComment extends SimpleNode
+{
+	public String text;
 
-/**
-	The capabilities of a minimal console for BeanShell.
-	Stream I/O and optimized print for output.
+	public BSHFormalComment(int id) {
+		super(id);
+	}
 
-	A simple console may ignore some of these or map them to trivial
-	implementations.  e.g. print() with color can be mapped to plain text.
-	@see bsh.util.GUIConsoleInterface
-*/
-public interface ConsoleInterface {
-	public Reader getIn();
-	public PrintStream getOut();
-	public PrintStream getErr();
-	public void println( Object o );
-	public void print( Object o );
-	public void error( Object o );
+    public <T> T accept(BshNodeVisitor<T> visitor) {
+        return visitor.visit(this);
+    }
+
 }
-
