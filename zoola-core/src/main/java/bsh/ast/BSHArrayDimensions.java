@@ -56,14 +56,8 @@ public class BSHArrayDimensions extends SimpleNode
 	{
 		if ( Interpreter.DEBUG ) Interpreter.debug("array base type = "+type);
 		baseType = type;
-		return eval( callstack, interpreter );
+		return this.accept(new BshEvaluatingVisitor(callstack, interpreter));
 	}
-
-    public Object eval( CallStack callstack, Interpreter interpreter )
-		throws EvalError
-    {
-        return this.accept(new BshEvaluatingVisitor(callstack, interpreter));
-    }
 
     public <T> T accept(BshNodeVisitor<T> visitor) {
         return visitor.visit(this);

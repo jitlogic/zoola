@@ -38,12 +38,6 @@ public class BSHAllocationExpression extends SimpleNode
     public BSHAllocationExpression(int id) { super(id); }
 	private static int innerClassCount = 0;
 
-    public Object eval( CallStack callstack, Interpreter interpreter)
-		throws EvalError
-    {
-        return this.accept(new BshEvaluatingVisitor(callstack, interpreter));
-    }
-
     public Object objectAllocation(
 		BSHAmbiguousName nameNode, BSHArguments argumentsNode, 
 		CallStack callstack, Interpreter interpreter 
@@ -52,7 +46,7 @@ public class BSHAllocationExpression extends SimpleNode
     {
 		NameSpace namespace = callstack.top();
 
-        Object[] args = argumentsNode.getArguments( callstack, interpreter );
+        Object[] args = argumentsNode.getArguments(new BshEvaluatingVisitor(callstack, interpreter)); // TODO
         if ( args == null)
             throw new EvalError( "Null args in new.", this, callstack );
 

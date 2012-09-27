@@ -135,8 +135,7 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
             for(int i = 0; i < node.numDefinedDims; i++)
             {
                 try {
-                    Object length = ((SimpleNode)node.jjtGetChild(i)).eval(
-                            callstack, interpreter);
+                    Object length = ((SimpleNode)node.jjtGetChild(i)).accept(this);
                     node.definedDimensions[i] = ((Primitive)length).intValue();
                 }
                 catch(Exception e)
@@ -189,7 +188,7 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
         // if ( rhsNode instanceof BSHBlock )
         //    rsh =
         // else
-        rhs = rhsNode.eval(callstack, interpreter);
+        rhs = rhsNode.accept(this);
 
         if ( rhs == Primitive.VOID )
             throw new EvalError("Void assignment.", node, callstack );
@@ -261,7 +260,7 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
 
 
     public Object visit(BSHBinaryExpression node) {
-        Object lhs = ((SimpleNode)node.jjtGetChild(0)).eval(callstack, interpreter);
+        Object lhs = ((SimpleNode)node.jjtGetChild(0)).accept(this);
 
         /*
               Doing instanceof?  Next node is a type.
@@ -332,7 +331,7 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
               do binary op
           */
         boolean isLhsWrapper = node.isWrapper(lhs);
-        Object rhs = ((SimpleNode)node.jjtGetChild(1)).eval(callstack, interpreter);
+        Object rhs = ((SimpleNode)node.jjtGetChild(1)).accept(this); //eval(callstack, interpreter);
         boolean isRhsWrapper = node.isWrapper(rhs);
         if (
                 ( isLhsWrapper || node.isPrimitiveValue(lhs) )
@@ -434,7 +433,7 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
         SimpleNode expression = (SimpleNode)node.jjtGetChild(1);
 
         // evaluate the expression
-        Object fromValue = expression.eval(callstack, interpreter);
+        Object fromValue = expression.accept(this);
         Class fromType = fromValue.getClass();
 
         // TODO: need to add isJavaCastable() test for strictJava
@@ -448,10 +447,12 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
 
 
     public Object visit(BSHClassDeclaration node) {
-        if (node.generatedClass == null) {
-            node.generatedClass = node.generateClass(callstack, interpreter);
+        synchronized (node) {
+            if (node.generatedClass == null) {
+                node.generatedClass = node.generateClass(callstack, interpreter);
+            }
+            return node.generatedClass;
         }
-        return node.generatedClass;
     }
 
 
@@ -479,7 +480,7 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
         BlockNameSpace eachNameSpace = new BlockNameSpace( enclosingNameSpace );
         callstack.swap( eachNameSpace );
 
-        final Object iteratee = expression.eval( callstack, interpreter );
+        final Object iteratee = expression.accept(this);
 
         if ( iteratee == Primitive.NULL )
             throw new EvalError("The collection, array, map, iterator, or " +
@@ -513,7 +514,7 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
             boolean breakout = false; // switch eats a multi-level break here?
             if ( statement != null ) // not empty statement
             {
-                Object ret = statement.eval( callstack, interpreter );
+                Object ret = statement.accept(this); //eval( callstack, interpreter );
 
                 if (ret instanceof ReturnControl)
                 {
@@ -569,7 +570,7 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
         for(int i=0; i<node.numArgs; i++)
         {
             BSHFormalParameter param = (BSHFormalParameter)node.jjtGetChild(i);
-            paramTypes[i] = (Class)param.eval( callstack, interpreter );
+            paramTypes[i] = (Class)param.accept(this); //eval( callstack, interpreter );
         }
 
         node.paramTypes = paramTypes;
@@ -614,7 +615,7 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
 
         // Do the for init
         if ( node.hasForInit )
-            node.forInit.eval( callstack, interpreter );
+            node.forInit.accept(this);
 
         Object returnControl = Primitive.VOID;
         while(true)
@@ -632,7 +633,7 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
             if ( node.statement != null ) // not empty statement
             {
                 // do *not* invoke special override for block... (see above)
-                Object ret = node.statement.eval( callstack, interpreter );
+                Object ret = node.statement.accept(this);
 
                 if (ret instanceof ReturnControl)
                 {
@@ -657,7 +658,7 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
                 break;
 
             if ( node.hasForUpdate )
-                node.forUpdate.eval( callstack, interpreter );
+                node.forUpdate.accept(this);
         }
 
         callstack.swap( enclosingNameSpace );  // put it back
@@ -670,10 +671,10 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
 
         if( node.evaluateCondition(
                 (SimpleNode) node.jjtGetChild(0), callstack, interpreter) )
-            ret = ((SimpleNode)node.jjtGetChild(1)).eval(callstack, interpreter);
+            ret = ((SimpleNode)node.jjtGetChild(1)).accept(this);
         else
         if(node.jjtGetNumChildren() > 2)
-            ret = ((SimpleNode)node.jjtGetChild(2)).eval(callstack, interpreter);
+            ret = ((SimpleNode)node.jjtGetChild(2)).accept(this);
 
         if(ret instanceof ReturnControl)
             return ret;
@@ -761,7 +762,7 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
             return Primitive.VOID;
 
         Name name = nameNode.getName(namespace);
-        Object[] args = node.getArgsNode().getArguments(callstack, interpreter);
+        Object[] args = node.getArgsNode().getArguments(this);
 
 // This try/catch block is replicated is BSHPrimarySuffix... need to
 // factor out common functionality...
@@ -826,7 +827,7 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
     public Object visit(BSHReturnStatement node) {
         Object value;
         if(node.jjtGetNumChildren() > 0)
-            value = ((SimpleNode)node.jjtGetChild(0)).eval(callstack, interpreter);
+            value = ((SimpleNode)node.jjtGetChild(0)).accept(this);
         else
             value = Primitive.VOID;
 
@@ -845,7 +846,7 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
         for(int i=0; i<n; i++)
         {
             SimpleNode nn = ((SimpleNode)node.jjtGetChild(i));
-            nn.eval(callstack, interpreter);
+            nn.accept(this);
         }
         return Primitive.VOID;
     }
@@ -855,7 +856,7 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
         if ( node.isDefault )
             return null; // should probably error
         SimpleNode label = ((SimpleNode)node.jjtGetChild(0));
-        return label.eval( callstack, interpreter );
+        return label.accept(this);
     }
 
 
@@ -863,7 +864,7 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
         int numchild = node.jjtGetNumChildren();
         int child = 0;
         SimpleNode switchExp = ((SimpleNode)node.jjtGetChild(child++));
-        Object switchVal = switchExp.eval( callstack, interpreter );
+        Object switchVal = switchExp.accept(this);
 
         /*
               Note: this could be made clearer by adding an inner class for the
@@ -885,7 +886,7 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
             // if label is default or equals switchVal
             if ( label.isDefault
                     || node.primitiveEquals(
-                    switchVal, label.eval(callstack, interpreter),
+                    switchVal, label.accept(this),
                     callstack, switchExp)
                     )
             {
@@ -897,7 +898,7 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
                         continue;
                     // eval it
                     Object value =
-                            ((SimpleNode)obj).eval( callstack, interpreter );
+                            ((SimpleNode)obj).accept(this);
 
                     // should check to disallow continue here?
                     if ( value instanceof ReturnControl ) {
@@ -933,14 +934,14 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
                 evalFalse = (SimpleNode)node.jjtGetChild(2);
 
         if ( BSHIfStatement.evaluateCondition(cond, callstack, interpreter) )
-            return evalTrue.eval( callstack, interpreter );
+            return evalTrue.accept(this);
         else
-            return evalFalse.eval( callstack, interpreter );
+            return evalFalse.accept(this);
     }
 
 
     public Object visit(BSHThrowStatement node) {
-        Object obj = ((SimpleNode)node.jjtGetChild(0)).eval(callstack, interpreter);
+        Object obj = ((SimpleNode)node.jjtGetChild(0)).accept(this);
 
         // need to loosen this to any throwable... do we need to handle
         // that in interpreter somewhere?  check first...
@@ -990,7 +991,7 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
           */
         int callstackDepth = callstack.depth();
         try {
-            ret = tryBlock.eval(callstack, interpreter);
+            ret = tryBlock.accept(this);
         }
         catch( TargetError e ) {
             target = e;
@@ -1017,7 +1018,7 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
                 // Evaluation of the formal parameter simply resolves its
                 // type via the specified namespace.. it doesn't modify the
                 // namespace.
-                fp.eval( callstack, interpreter );
+                fp.accept(this);
 
                 if ( fp.type == null && interpreter.getStrictJava() )
                     throw new EvalError(
@@ -1069,7 +1070,7 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
                 // put cbNameSpace on the top of the stack
                 callstack.swap( cbNameSpace );
                 try {
-                    ret = cb.eval( callstack, interpreter );
+                    ret = cb.accept(this);
                 } finally {
                     // put it back
                     callstack.swap( enclosingNameSpace );
@@ -1082,7 +1083,7 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
 
         // evaluate finally block
         if( finallyBlock != null ) {
-            Object result = finallyBlock.eval(callstack, interpreter);
+            Object result = finallyBlock.accept(this);
             if( result instanceof ReturnControl )
                 return result;
         }
@@ -1145,7 +1146,7 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
                 return node.lhsUnaryOperation(lhs, interpreter.getStrictJava());
             } else
                 return
-                        node.unaryOperation(simpleNode.eval(callstack, interpreter), node.kind);
+                        node.unaryOperation(simpleNode.accept(this), node.kind);
         } catch ( UtilEvalError e ) {
             throw e.toEvalError( node, callstack );
         }
@@ -1183,7 +1184,7 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
             if ( body == null ) {
                 continue;
             }
-            Object ret = body.eval(callstack, interpreter);
+            Object ret = body.accept(this);
             if (ret instanceof ReturnControl) {
                 switch(( (ReturnControl)ret).kind ) {
                     case RETURN:

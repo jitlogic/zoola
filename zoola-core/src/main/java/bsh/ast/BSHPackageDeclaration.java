@@ -34,12 +34,6 @@ public class BSHPackageDeclaration extends SimpleNode
     super(id);
   }
 
-	public Object eval( CallStack callstack, Interpreter interpreter )
-		throws EvalError
-	{
-        return this.accept(new BshEvaluatingVisitor(callstack, interpreter));
-    }
-
     public <T> T accept(BshNodeVisitor<T> visitor) {
         return visitor.visit(this);
     }

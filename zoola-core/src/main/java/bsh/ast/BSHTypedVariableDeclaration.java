@@ -55,17 +55,7 @@ public class BSHTypedVariableDeclaration extends SimpleNode
 		return bvda;
 	}
 
-	/**
-		evaluate the type and one or more variable declarators, e.g.:
-			int a, b=5, c;
-	*/
-    public Object eval( CallStack callstack, Interpreter interpreter)  
-		throws EvalError
-    {
-        return this.accept(new BshEvaluatingVisitor(callstack, interpreter));
-    }
-
-	public String getTypeDescriptor( 
+	public String getTypeDescriptor(
 		CallStack callstack, Interpreter interpreter, String defaultPackage ) 
 	{ 
 		return getTypeNode().getTypeDescriptor( 

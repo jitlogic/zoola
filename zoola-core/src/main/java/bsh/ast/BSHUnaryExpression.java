@@ -34,12 +34,6 @@ public class BSHUnaryExpression extends SimpleNode implements ParserConstants
 
     public BSHUnaryExpression(int id) { super(id); }
 
-    public Object eval( CallStack callstack, Interpreter interpreter)
-		throws EvalError
-    {
-        return this.accept(new BshEvaluatingVisitor(callstack, interpreter));
-    }
-
     public Object lhsUnaryOperation( LHS lhs, boolean strictJava )
 		throws UtilEvalError
     {

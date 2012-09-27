@@ -147,16 +147,6 @@ public class SimpleNode implements Node
 	}
 
 	/**
-		This is the general signature for evaluation of a node.
-	*/
-	public Object eval( CallStack callstack, Interpreter interpreter )
-		throws EvalError
-	{
-		throw new InterpreterError(
-			"Unimplemented or inappropriate for " + getClass().getName() );
-	}
-
-	/**
 		Set the name of the source file (or more generally source) of
 		the text from which this node was parsed.
 	*/

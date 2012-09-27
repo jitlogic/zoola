@@ -826,7 +826,7 @@ public class ClassGeneratorUtil implements Opcodes {
 		Interpreter interpreter = classStaticThis.declaringInterpreter;
 
 		try {
-			args = argsNode.getArguments(callstack, interpreter);
+			args = argsNode.getArguments(new BshEvaluatingVisitor(callstack, interpreter));
 		} catch (EvalError e) {
 			throw new InterpreterError("Error evaluating constructor args: " + e);
 		}

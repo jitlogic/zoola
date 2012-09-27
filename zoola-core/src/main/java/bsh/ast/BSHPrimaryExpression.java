@@ -34,15 +34,6 @@ public class BSHPrimaryExpression extends SimpleNode
 	/**
 		Evaluate to a value object.
 	*/
-	public Object eval( CallStack callstack, Interpreter interpreter)
-		throws EvalError
-	{
-        return this.accept(new BshEvaluatingVisitor(callstack, interpreter));
-    }
-
-	/**
-		Evaluate to a value object.
-	*/
 	public LHS toLHS( CallStack callstack, Interpreter interpreter)
 		throws EvalError
 	{
@@ -92,7 +83,7 @@ public class BSHPrimaryExpression extends SimpleNode
 					throw new EvalError("Can't assign to prefix.", 
 						this, callstack );
 				else
-					obj = ((SimpleNode)obj).eval(callstack, interpreter);	
+					obj = ((SimpleNode)obj).accept(new BshEvaluatingVisitor(callstack, interpreter));
 
 		// return LHS or value object as determined by toLHS
 		if ( obj instanceof LHS )

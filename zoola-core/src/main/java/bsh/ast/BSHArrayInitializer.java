@@ -33,13 +33,6 @@ public class BSHArrayInitializer extends SimpleNode
 {
     public BSHArrayInitializer(int id) { super(id); }
 
-    public Object eval( CallStack callstack, Interpreter interpreter )
-		throws EvalError
-	{
-		throw new EvalError( "Array initializer has no base type.", 
-			this, callstack );
-	}
-
 	/**
 		Construct the array from the initializer syntax.
 
@@ -74,7 +67,7 @@ public class BSHArrayInitializer extends SimpleNode
 					((BSHArrayInitializer)node).eval( 
 						baseType, dimensions-1, callstack, interpreter);
 			} else
-            	currentInitializer = node.eval( callstack, interpreter);
+            	currentInitializer = node.accept(new BshEvaluatingVisitor(callstack, interpreter)); // TODO
 
 			if ( currentInitializer == Primitive.VOID )
 				throw new EvalError(

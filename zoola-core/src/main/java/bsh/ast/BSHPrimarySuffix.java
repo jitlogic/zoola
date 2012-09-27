@@ -92,7 +92,7 @@ public class BSHPrimarySuffix extends SimpleNode
 			if ( obj instanceof BSHAmbiguousName)
 				obj = ((BSHAmbiguousName)obj).toObject(callstack, interpreter);
 			else
-				obj = ((SimpleNode)obj).eval(callstack, interpreter);	
+				obj = ((SimpleNode)obj).accept(new BshEvaluatingVisitor(callstack, interpreter));
 		else
 			if ( obj instanceof LHS )
 				try {
@@ -157,7 +157,7 @@ public class BSHPrimarySuffix extends SimpleNode
 			// Method invocation
 			// (LHS or non LHS evaluation can both encounter method calls)
 			Object[] oa = ((BSHArguments)jjtGetChild(0)).getArguments(
-				callstack, interpreter);
+				new BshEvaluatingVisitor(callstack, interpreter));  // TODO
 
 		// TODO:
 		// Note: this try/catch block is copied from BSHMethodInvocation
@@ -209,8 +209,8 @@ public class BSHPrimarySuffix extends SimpleNode
 		int index;
 		try {
 			Object indexVal = 
-				((SimpleNode)callerInfo.jjtGetChild(0)).eval( 
-					callstack, interpreter );
+				((SimpleNode)callerInfo.jjtGetChild(0)).accept(
+                        new BshEvaluatingVisitor(callstack, interpreter));
 			if ( !(indexVal instanceof Primitive) )
 				indexVal = Types.castObject(
 					indexVal, Integer.TYPE, Types.ASSIGNMENT );
@@ -262,8 +262,8 @@ public class BSHPrimarySuffix extends SimpleNode
 			throw new EvalError("Attempt to access property on a primitive", 
 				this, callstack );
 
-		Object value = ((SimpleNode)jjtGetChild(0)).eval(
-			callstack, interpreter);
+		Object value = ((SimpleNode)jjtGetChild(0)).accept(new BshEvaluatingVisitor(
+			callstack, interpreter)); // TODO
 
 		if ( !( value instanceof String ) )
 			throw new EvalError(

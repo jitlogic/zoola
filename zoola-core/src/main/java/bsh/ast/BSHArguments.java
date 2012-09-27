@@ -48,17 +48,17 @@ public class BSHArguments extends SimpleNode
 		including the argument position back up, where the error message would
 		be compounded.
 	*/
-    public Object[] getArguments( CallStack callstack, Interpreter interpreter)
+    public Object[] getArguments( BshEvaluatingVisitor visitor)
 		throws EvalError
     {
         // evaluate each child
         Object[] args = new Object[jjtGetNumChildren()];
         for(int i = 0; i < args.length; i++)
 		{
-            args[i] = ((SimpleNode)jjtGetChild(i)).eval(callstack, interpreter);
+            args[i] = ((SimpleNode)jjtGetChild(i)).accept(visitor);
 			if ( args[i] == Primitive.VOID )
 				throw new EvalError( "Undefined argument: " + 
-					((SimpleNode)jjtGetChild(i)).getText(), this, callstack );
+					((SimpleNode)jjtGetChild(i)).getText(), this, visitor.getCallstack() );
 		}
 
         return args;

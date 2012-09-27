@@ -33,12 +33,6 @@ public class BSHBlock extends SimpleNode
 
 	public BSHBlock(int id) { super(id); }
 
-	public Object eval( CallStack callstack, Interpreter interpreter)
-		throws EvalError
-	{
-        return this.accept(new BshEvaluatingVisitor(callstack, interpreter));
-    }
-
 	/**
 		@param overrideNamespace if set to true the block will be executed
 		in the current namespace (not a subordinate one).
@@ -59,7 +53,7 @@ public class BSHBlock extends SimpleNode
 		{
 			// First node is the expression on which to sync
 			SimpleNode exp = ((SimpleNode)jjtGetChild(0));
-			syncValue = exp.eval(callstack, interpreter);
+			syncValue = exp.accept(new BshEvaluatingVisitor(callstack, interpreter)); // TODO
 		}
 
 		Object ret;
@@ -108,7 +102,8 @@ public class BSHBlock extends SimpleNode
 					continue;
 
 				if ( node instanceof BSHClassDeclaration )
-					node.eval( callstack, interpreter );
+                    node.accept(new BshEvaluatingVisitor(callstack, interpreter));
+					//node.eval(callstack, interpreter); // TODO
 			}
 			for(int i=startChild; i<numChildren; i++)
 			{
@@ -120,7 +115,7 @@ public class BSHBlock extends SimpleNode
 				if ( nodeFilter != null && !nodeFilter.isVisible( node ) )
 					continue;
 
-				ret = node.eval( callstack, interpreter );
+				ret = node.accept(new BshEvaluatingVisitor(callstack, interpreter));
 
 				// statement or embedded block evaluated a return statement
 				if ( ret instanceof ReturnControl )

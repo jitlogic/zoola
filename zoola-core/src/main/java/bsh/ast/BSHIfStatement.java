@@ -31,17 +31,11 @@ public class BSHIfStatement extends SimpleNode
 {
     public BSHIfStatement(int id) { super(id); }
 
-    public Object eval(CallStack callstack, Interpreter interpreter)
-		throws EvalError
-    {
-        return this.accept(new BshEvaluatingVisitor(callstack, interpreter));
-    }
-
     public static boolean evaluateCondition(
 		SimpleNode condExp, CallStack callstack, Interpreter interpreter) 
 		throws EvalError
     {
-        Object obj = condExp.eval(callstack, interpreter);
+        Object obj = condExp.accept(new BshEvaluatingVisitor(callstack, interpreter));
         if(obj instanceof Primitive) {
 			if ( obj == Primitive.VOID )
 				throw new EvalError("Condition evaluates to void type", 

@@ -81,16 +81,6 @@ public class BSHFormalParameters extends SimpleNode
 		return typeDesc;
 	}
 
-	/**
-		Evaluate the types.  
-		Note that type resolution does not require the interpreter instance.
-	*/
-	public Object eval( CallStack callstack, Interpreter interpreter )  
-		throws EvalError
-	{
-        return this.accept(new BshEvaluatingVisitor(callstack, interpreter));
-    }
-
     public <T> T accept(BshNodeVisitor<T> visitor) {
         return visitor.visit(this);
     }

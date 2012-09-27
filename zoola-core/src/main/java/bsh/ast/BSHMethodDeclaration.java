@@ -104,16 +104,6 @@ public class BSHMethodDeclaration extends SimpleNode
 		return returnTypeNode;
 	}
 
-	/**
-		Evaluate the declaration of the method.  That is, determine the
-		structure of the method and install it into the caller's namespace.
-	*/
-	public Object eval( CallStack callstack, Interpreter interpreter )
-		throws EvalError
-	{
-        return this.accept(new BshEvaluatingVisitor(callstack, interpreter));
-    }
-
 	public void evalNodes( CallStack callstack, Interpreter interpreter )
 		throws EvalError
 	{
@@ -124,7 +114,7 @@ public class BSHMethodDeclaration extends SimpleNode
 			((BSHAmbiguousName)jjtGetChild(i)).toClass(
 				callstack, interpreter );
 
-		paramsNode.eval( callstack, interpreter );
+		paramsNode.accept( new BshEvaluatingVisitor(callstack, interpreter ));
 
 		// if strictJava mode, check for loose parameters and return type
 		if ( interpreter.getStrictJava() )

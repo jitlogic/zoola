@@ -76,7 +76,7 @@ public class BSHVariableDeclarator extends SimpleNode
 					typeNode.getBaseType(), typeNode.getArrayDims(), 
 					callstack, interpreter);
 			else
-				value = initializer.eval( callstack, interpreter);
+				value = initializer.accept(new BshEvaluatingVisitor(callstack, interpreter));
 		}
 
 		if ( value == Primitive.VOID )
