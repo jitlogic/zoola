@@ -27,6 +27,7 @@ package bsh;
 import bsh.ast.BSHBlock;
 import bsh.ast.BSHFormalParameters;
 import bsh.ast.BSHReturnType;
+import bsh.interpreter.BshEvaluatingVisitor;
 
 public class DelayedEvalBshMethod extends BshMethod
 {
@@ -36,8 +37,8 @@ public class DelayedEvalBshMethod extends BshMethod
 	BSHFormalParameters paramTypesNode;
 
 	// used for the delayed evaluation...
-	transient CallStack callstack;
-	transient Interpreter interpreter;
+	//transient CallStack callstack;
+	//transient Interpreter interpreter;
     transient BshEvaluatingVisitor evaluator;
 
     /**
@@ -60,7 +61,7 @@ public class DelayedEvalBshMethod extends BshMethod
 		String [] paramTypeDescriptors, BSHFormalParameters paramTypesNode,
 		BSHBlock methodBody,
 		NameSpace declaringNameSpace, Modifiers modifiers,
-		CallStack callstack, Interpreter interpreter
+		BshEvaluatingVisitor visitor
 	) {
 		super( name, null/*returnType*/, paramNames, null/*paramTypes*/,
 			methodBody, declaringNameSpace, modifiers );
@@ -69,10 +70,10 @@ public class DelayedEvalBshMethod extends BshMethod
 		this.returnTypeNode = returnTypeNode;
 		this.paramTypeDescriptors = paramTypeDescriptors;
 		this.paramTypesNode = paramTypesNode;
-		this.callstack = callstack;
-		this.interpreter = interpreter;
 
-        this.evaluator = new BshEvaluatingVisitor(callstack, interpreter);
+        this.evaluator = visitor;
+
+        //this.evaluator = new BshEvaluatingVisitor(callstack, interpreter);
 	}
 
 	public String getReturnTypeDescriptor() { return returnTypeDescriptor; }
@@ -84,7 +85,7 @@ public class DelayedEvalBshMethod extends BshMethod
 
 		// BSHType will cache the type for us
 		try {
-			return returnTypeNode.evalReturnType( callstack, interpreter );
+			return evaluator.evalReturnType( returnTypeNode);
 		} catch ( EvalError e ) {
 			throw new InterpreterError("can't eval return type: "+e);
 		}

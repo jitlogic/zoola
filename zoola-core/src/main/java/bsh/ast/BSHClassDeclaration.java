@@ -49,14 +49,6 @@ public class BSHClassDeclaration extends SimpleNode
 
 	public BSHClassDeclaration(int id) { super(id); }
 
-	/**
-	*/
-	public synchronized Object eval(final CallStack callstack, final Interpreter interpreter )
-            throws EvalError
-    {
-        return this.accept(new BshEvaluatingVisitor(callstack, interpreter));
-    }
-
 
 	public Class<?> generateClass(final CallStack callstack, final Interpreter interpreter) throws EvalError {
 		int child = 0;

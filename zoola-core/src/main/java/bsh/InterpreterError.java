@@ -27,6 +27,8 @@
 
 package bsh;
 
+import bsh.ast.SimpleNode;
+
 /**
  * An internal error in the interpreter has occurred.
  */
@@ -36,6 +38,9 @@ public class InterpreterError extends RuntimeException {
 		super(s);
 	}
 
+    public InterpreterError(final String s, final SimpleNode node) {
+        super(s + " (at " + node.getSourceFile() + ":" + node.getLineNumber() + "\n" + node.getText());
+    }
 
 	public InterpreterError(final String s, final Throwable cause) {
 		super(s, cause);

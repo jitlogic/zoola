@@ -33,13 +33,6 @@ public class BSHAssignment extends SimpleNode implements ParserConstants
 
     public BSHAssignment(int id) { super(id); }
 
-    public Object eval(
-		CallStack callstack, Interpreter interpreter)
-		throws EvalError
-    {
-        return this.accept(new BshEvaluatingVisitor(callstack, interpreter));
-    }
-
     public Object operation( Object lhs, Object rhs, int kind )
 		throws UtilEvalError
     {

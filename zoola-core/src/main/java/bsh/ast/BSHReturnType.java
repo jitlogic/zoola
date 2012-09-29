@@ -26,35 +26,13 @@
 package bsh.ast;
 
 import bsh.*;
+import bsh.interpreter.BshEvaluatingVisitor;
 
 public class BSHReturnType extends SimpleNode
 {
 	public boolean isVoid;
 
 	public BSHReturnType(int id) { super(id); }
-
-	BSHType getTypeNode() {
-		return (BSHType)jjtGetChild(0);
-	}
-
-	public String getTypeDescriptor( 
-		CallStack callstack, Interpreter interpreter, String defaultPackage )
-	{
-		if ( isVoid )
-			return "V";
-		else
-			return getTypeNode().getTypeDescriptor( 
-				callstack, interpreter, defaultPackage );
-	}
-
-	public Class evalReturnType( 
-		CallStack callstack, Interpreter interpreter ) throws EvalError
-	{
-		if ( isVoid )
-			return Void.TYPE;
-		else
-			return getTypeNode().getType( callstack, interpreter );
-	}
 
     public <T> T accept(BshNodeVisitor<T> visitor) {
         return visitor.visit(this);

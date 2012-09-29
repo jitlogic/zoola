@@ -35,16 +35,6 @@ public final class BSHLiteral extends SimpleNode
 
 	public BSHLiteral(int id) { super(id); }
 
-	public Object eval( CallStack callstack, Interpreter interpreter )
-		throws EvalError
-	{
-//		if ( value == null )
-//			throw new InterpreterError("Null in bsh literal: "+value);
-//
-//		return value;
-        return this.accept(new BshEvaluatingVisitor(callstack, interpreter));
-	}
-
 	private char getEscapeChar(char ch)
 	{
 		switch(ch)

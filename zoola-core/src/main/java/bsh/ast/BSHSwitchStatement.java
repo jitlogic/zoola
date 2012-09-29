@@ -33,12 +33,6 @@ public class BSHSwitchStatement
 
 	public BSHSwitchStatement(int id) { super(id); }
 
-    public Object eval( CallStack callstack, Interpreter interpreter )
-		throws EvalError
-	{
-        return this.accept(new BshEvaluatingVisitor(callstack, interpreter));
-    }
-
 	/**
 		Helper method for testing equals on two primitive or boxable objects.
 		yuck: factor this out into Primitive.java

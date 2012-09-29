@@ -25,6 +25,7 @@
 package bsh.ast;
 
 import bsh.*;
+import bsh.interpreter.BshEvaluatingVisitor;
 
 public class BSHFormalParameters extends SimpleNode
 {
@@ -62,7 +63,7 @@ public class BSHFormalParameters extends SimpleNode
 	}
 
 	public String [] getTypeDescriptors( 
-		CallStack callstack, Interpreter interpreter, String defaultPackage )
+		BshEvaluatingVisitor visitor, String defaultPackage )
 	{
 		if ( typeDescriptors != null )
 			return typeDescriptors;
@@ -74,22 +75,12 @@ public class BSHFormalParameters extends SimpleNode
 		{
 			BSHFormalParameter param = (BSHFormalParameter)jjtGetChild(i);
 			typeDesc[i] = param.getTypeDescriptor( 
-				callstack, interpreter, defaultPackage );
+				visitor.getCallstack(), visitor.getInterpreter(), defaultPackage );
 		}
 
 		this.typeDescriptors = typeDesc;
 		return typeDesc;
 	}
-
-	/**
-		Evaluate the types.  
-		Note that type resolution does not require the interpreter instance.
-	*/
-	public Object eval( CallStack callstack, Interpreter interpreter )  
-		throws EvalError
-	{
-        return this.accept(new BshEvaluatingVisitor(callstack, interpreter));
-    }
 
     public <T> T accept(BshNodeVisitor<T> visitor) {
         return visitor.visit(this);

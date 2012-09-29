@@ -25,6 +25,7 @@
 package bsh;
 
 import bsh.ast.*;
+import bsh.interpreter.BshEvaluatingVisitor;
 import org.objectweb.asm.*;
 import org.objectweb.asm.Type;
 
@@ -826,7 +827,7 @@ public class ClassGeneratorUtil implements Opcodes {
 		Interpreter interpreter = classStaticThis.declaringInterpreter;
 
 		try {
-			args = argsNode.getArguments(callstack, interpreter);
+			args = argsNode.getArguments(new BshEvaluatingVisitor(callstack, interpreter));
 		} catch (EvalError e) {
 			throw new InterpreterError("Error evaluating constructor args: " + e);
 		}
@@ -957,7 +958,7 @@ public class ClassGeneratorUtil implements Opcodes {
 
 			// evaluate the instance portion of the block in it
 			try { // Evaluate the initializer block
-				instanceInitBlock.evalBlock(callstack, interpreter, true/*override*/, ClassGenerator.ClassNodeFilter.CLASSINSTANCE);
+				new BshEvaluatingVisitor(callstack, interpreter).evalBlock(instanceInitBlock, true/*override*/, ClassGenerator.ClassNodeFilter.CLASSINSTANCE);
 			} catch (Exception e) {
 				throw new InterpreterError("Error in class initialization: " + e, e);
 			}
