@@ -25,6 +25,7 @@
 package bsh.ast;
 
 import bsh.*;
+import bsh.interpreter.BshEvaluatingVisitor;
 
 public class BSHTypedVariableDeclaration extends SimpleNode
 {
@@ -40,7 +41,7 @@ public class BSHTypedVariableDeclaration extends SimpleNode
 		throws EvalError
 	{
 		BSHType typeNode = getTypeNode();
-		return typeNode.getType( callstack, interpreter );
+		return typeNode.getType( new BshEvaluatingVisitor(callstack, interpreter) );
 	}
 
 	public BSHVariableDeclarator[] getDeclarators()

@@ -958,7 +958,7 @@ public class ClassGeneratorUtil implements Opcodes {
 
 			// evaluate the instance portion of the block in it
 			try { // Evaluate the initializer block
-				instanceInitBlock.evalBlock(callstack, interpreter, true/*override*/, ClassGenerator.ClassNodeFilter.CLASSINSTANCE);
+				new BshEvaluatingVisitor(callstack, interpreter).evalBlock(instanceInitBlock, true/*override*/, ClassGenerator.ClassNodeFilter.CLASSINSTANCE);
 			} catch (Exception e) {
 				throw new InterpreterError("Error in class initialization: " + e, e);
 			}

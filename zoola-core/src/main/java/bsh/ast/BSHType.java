@@ -26,6 +26,7 @@
 package bsh.ast;
 
 import bsh.*;
+import bsh.interpreter.BshEvaluatingVisitor;
 
 import java.lang.reflect.Array;
 
@@ -132,7 +133,7 @@ public class BSHType extends SimpleNode
         return descriptor;
     }
 
-    public Class getType( CallStack callstack, Interpreter interpreter ) 
+    public Class getType( BshEvaluatingVisitor visitor)
 		throws EvalError
     {
         // return cached type if available
@@ -145,7 +146,7 @@ public class BSHType extends SimpleNode
             baseType = ((BSHPrimitiveType)node).getType();
         else 
             baseType = ((BSHAmbiguousName)node).toClass( 
-				callstack, interpreter );
+				visitor.getCallstack(), visitor.getInterpreter());
 
         if ( arrayDims > 0 ) {
             try {
@@ -156,14 +157,14 @@ public class BSHType extends SimpleNode
                 type = obj.getClass(); 
             } catch(Exception e) {
                 throw new EvalError("Couldn't construct array type", 
-					this, callstack );
+					this, visitor.getCallstack() );
             }
         } else
             type = baseType;
 
 		// hack... sticking to first interpreter that resolves this
 		// see comments on type instance variable
-		interpreter.getClassManager().addListener(this);
+		visitor.getInterpreter().getClassManager().addListener(this);
 
         return type;
     }

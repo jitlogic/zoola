@@ -9,7 +9,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import static bsh.ParserConstants.*;
+//import static bsh.ParserConstants.*;
 
 /**
  * @author RLE <rafal.lewczuk@gmail.com>
@@ -36,7 +36,6 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
     }
 
     public Object visit(BSHAllocationExpression node) {
-        //return node.eval(callstack, interpreter);
         // type is either a class name or a primitive type
         SimpleNode type = (SimpleNode)node.jjtGetChild(0);
 
@@ -48,18 +47,240 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
             BSHAmbiguousName name = (BSHAmbiguousName)type;
 
             if (args instanceof BSHArguments)
-                return node.objectAllocation(name, (BSHArguments) args,
-                        callstack, interpreter);
+                return objectAllocation(node, name, (BSHArguments) args);
             else
-                return node.objectArrayAllocation(name, (BSHArrayDimensions) args,
-                        callstack, interpreter);
+                return objectArrayAllocation(node, name, (BSHArrayDimensions) args
+                );
         }
         else
-            return node.primitiveArrayAllocation((BSHPrimitiveType) type,
-                    (BSHArrayDimensions) args, callstack, interpreter);
+            return primitiveArrayAllocation(node, (BSHPrimitiveType) type,
+                    (BSHArrayDimensions) args);
 
     }
 
+    public Object objectAllocation(BSHAllocationExpression node,
+            BSHAmbiguousName nameNode, BSHArguments argumentsNode)
+            throws EvalError
+    {
+        NameSpace namespace = callstack.top();
+
+        Object[] args = argumentsNode.getArguments(this);
+        if ( args == null)
+            throw new EvalError( "Null args in new.", node, callstack );
+
+        // Look for scripted class object
+        Object obj = nameNode.toObject(
+                callstack, interpreter, false/* force class*/ );
+
+        // Try regular class
+
+        obj = nameNode.toObject(
+                callstack, interpreter, true/*force class*/ );
+
+        Class type = null;
+        if ( obj instanceof ClassIdentifier )
+            type = ((ClassIdentifier)obj).getTargetClass();
+        else
+            throw new EvalError(
+                    "Unknown class: "+nameNode.text, node, callstack );
+
+        // Is an inner class style object allocation
+        boolean hasBody = node.jjtGetNumChildren() > 2;
+
+        if ( hasBody )
+        {
+            BSHBlock body = (BSHBlock)node.jjtGetChild(2);
+            if ( type.isInterface() )
+                return constructWithInterfaceBody(node,
+                        type, args, body);
+            else
+                return constructWithClassBody( node,
+                        type, args, body );
+        } else
+            return constructObject(node, type, args );
+    }
+
+
+    public Object constructObject(BSHAllocationExpression node, Class<?> type, Object[] args ) throws EvalError {
+        final boolean isGeneratedClass = GeneratedClass.class.isAssignableFrom(type);
+        if (isGeneratedClass) {
+            ClassGeneratorUtil.registerConstructorContext(callstack, interpreter);
+        }
+        Object obj;
+        try {
+            obj = Reflect.constructObject( type, args );
+        } catch ( ReflectError e) {
+            throw new EvalError(
+                    "Constructor error: " + e.getMessage(), node, callstack );
+        } catch (InvocationTargetException e) {
+            // No need to wrap this debug
+            Interpreter.debug("The constructor threw an exception:\n\t" + e.getTargetException());
+            throw new TargetError("Object constructor", e.getTargetException(), node, callstack, true);
+        } finally {
+            if (isGeneratedClass) {
+                ClassGeneratorUtil.registerConstructorContext(null, null); // clean up, prevent memory leak
+            }
+        }
+
+        String className = type.getName();
+        // Is it an inner class?
+        if ( className.indexOf("$") == -1 )
+            return obj;
+
+        // Temporary hack to support inner classes
+        // If the obj is a non-static inner class then import the context...
+        // This is not a sufficient emulation of inner classes.
+        // Replace this later...
+
+        // work through to class 'this'
+        This ths = callstack.top().getThis( null );
+        NameSpace instanceNameSpace =
+                Name.getClassNameSpace( ths.getNameSpace() );
+
+        // Change the parent (which was the class static) to the class instance
+        // We really need to check if we're a static inner class here first...
+        // but for some reason Java won't show the static modifier on our
+        // fake inner classes...  could generate a flag field.
+        if ( instanceNameSpace != null
+                && className.startsWith( instanceNameSpace.getName() +"$")
+                )
+        {
+            ClassGenerator.getClassGenerator().setInstanceNameSpaceParent(
+                    obj, className, instanceNameSpace );
+        }
+
+        return obj;
+    }
+
+
+    public Object constructWithClassBody( BSHAllocationExpression node,
+            Class type, Object[] args, BSHBlock block )
+            throws EvalError
+    {
+        String name = callstack.top().getName() + "$" + (++node.innerClassCount);
+        Modifiers modifiers = new Modifiers();
+        modifiers.addModifier( Modifiers.CLASS, "public" );
+        Class clas = ClassGenerator.getClassGenerator() .generateClass(
+                name, modifiers, null/*interfaces*/, type/*superClass*/,
+                block, false/*isInterface*/, callstack, interpreter );
+        try {
+            return Reflect.constructObject( clas, args );
+        } catch ( Exception e ) {
+            Throwable cause = e;
+            if ( e instanceof InvocationTargetException ) {
+                cause = ((InvocationTargetException) e).getTargetException();
+            }
+            throw new EvalError("Error constructing inner class instance: "+e, node, callstack, cause);
+        }
+    }
+
+
+    public Object constructWithInterfaceBody( BSHAllocationExpression node,
+            Class type, Object[] args, BSHBlock body )
+            throws EvalError
+    {
+        NameSpace namespace = callstack.top();
+        NameSpace local = new NameSpace(namespace, "AnonymousBlock");
+        callstack.push(local);
+        evalBlock(body, true);
+        callstack.pop();
+        // statical import fields from the interface so that code inside
+        // can refer to the fields directly (e.g. HEIGHT)
+        local.importStatic( type );
+        return local.getThis(interpreter).getInterface( type );
+    }
+
+
+    public Object objectArrayAllocation( BSHAllocationExpression node,
+            BSHAmbiguousName nameNode, BSHArrayDimensions dimensionsNode )
+            throws EvalError
+    {
+        NameSpace namespace = callstack.top();
+        Class type = nameNode.toClass( callstack, interpreter );
+        if ( type == null )
+            throw new EvalError( "Class " + nameNode.getName(namespace)
+                    + " not found.", node, callstack );
+
+        return arrayAllocation( node, dimensionsNode, type );
+    }
+
+    public Object primitiveArrayAllocation( BSHAllocationExpression node,
+            BSHPrimitiveType typeNode, BSHArrayDimensions dimensionsNode
+    )
+            throws EvalError
+    {
+        Class type = typeNode.getType();
+
+        return arrayAllocation(node, dimensionsNode, type );
+    }
+
+    public Object arrayAllocation( BSHAllocationExpression node,
+            BSHArrayDimensions dimensionsNode, Class type)
+            throws EvalError
+    {
+        /*
+              dimensionsNode can return either a fully intialized array or VOID.
+              when VOID the prescribed array dimensions (defined and undefined)
+              are contained in the node.
+          */
+        Object result = evalArrayDimensions(dimensionsNode, type);
+        if ( result != Primitive.VOID )
+            return result;
+        else
+            return arrayNewInstance( node, type, dimensionsNode );
+    }
+
+    /**
+     Create an array of the dimensions specified in dimensionsNode.
+     dimensionsNode may contain a number of "undefined" as well as "defined"
+     dimensions.
+     <p>
+
+     Background: in Java arrays are implemented in arrays-of-arrays style
+     where, for example, a two dimensional array is a an array of arrays of
+     some base type.  Each dimension-type has a Java class type associated
+     with it... so if foo = new int[5][5] then the type of foo is
+     int [][] and the type of foo[0] is int[], etc.  Arrays may also be
+     specified with undefined trailing dimensions - meaning that the lower
+     order arrays are not allocated as objects. e.g.
+     if foo = new int [5][]; then foo[0] == null //true; and can later be
+     assigned with the appropriate type, e.g. foo[0] = new int[5];
+     (See Learning Java, O'Reilly & Associates more background).
+     <p>
+
+     To create an array with undefined trailing dimensions using the
+     reflection API we must use an array type to represent the lower order
+     (undefined) dimensions as the "base" type for the array creation...
+     Java will then create the correct type by adding the dimensions of the
+     base type to specified allocated dimensions yielding an array of
+     dimensionality base + specified with the base dimensons unallocated.
+     To create the "base" array type we simply create a prototype, zero
+     length in each dimension, array and use it to get its class
+     (Actually, I think there is a way we could do it with Class.forName()
+     but I don't trust this).   The code is simpler than the explanation...
+     see below.
+     */
+    public Object arrayNewInstance( BSHAllocationExpression node,
+            Class type, BSHArrayDimensions dimensionsNode )
+            throws EvalError
+    {
+        if ( dimensionsNode.numUndefinedDims > 0 )
+        {
+            Object proto = Array.newInstance(
+                    type, new int [dimensionsNode.numUndefinedDims] ); // zeros
+            type = proto.getClass();
+        }
+
+        try {
+            return Array.newInstance(
+                    type, dimensionsNode.definedDimensions);
+        } catch( NegativeArraySizeException e1 ) {
+            throw new TargetError( e1, node, callstack );
+        } catch( Exception e ) {
+            throw new EvalError("Can't construct primitive array: " +
+                    e.getMessage(), node, callstack);
+        }
+    }
 
     public Object visit(BSHAmbiguousName node) {
         throw new InterpreterError(
@@ -103,7 +324,7 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
                         "Internal Array Eval err:  unknown base type",
                         node, callstack );
 
-            Object initValue = ((BSHArrayInitializer)child).eval(
+            Object initValue = evalArrayInitializer(((BSHArrayInitializer) child),
                     node.baseType, node.numUndefinedDims, callstack, interpreter);
 
             Class arrayClass = initValue.getClass();
@@ -151,6 +372,114 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
         return Primitive.VOID;
     }
 
+    public Object evalArrayDimensions( BSHArrayDimensions node,
+            Class type )
+            throws EvalError
+    {
+        if ( Interpreter.DEBUG ) Interpreter.debug("array base type = "+type);
+        node.baseType = type;
+        return node.accept(this);
+    }
+
+
+
+
+    /**
+     Construct the array from the initializer syntax.
+
+     @param baseType the base class type of the array (no dimensionality)
+     @param dimensions the top number of dimensions of the array
+     e.g. 2 for a String [][];
+     */
+    public Object evalArrayInitializer(BSHArrayInitializer nodeA, Class baseType, int dimensions,
+                        CallStack callstack, Interpreter interpreter )
+            throws EvalError
+    {
+        int numInitializers = nodeA.jjtGetNumChildren();
+
+        // allocate the array to store the initializers
+        int [] dima = new int [dimensions]; // description of the array
+        // The other dimensions default to zero and are assigned when
+        // the values are set.
+        dima[0] = numInitializers;
+        Object initializers =  Array.newInstance( baseType, dima );
+
+        // Evaluate the initializers
+        for (int i = 0; i < numInitializers; i++)
+        {
+            SimpleNode childNode = (SimpleNode)nodeA.jjtGetChild(i);
+            Object currentInitializer;
+            if ( childNode instanceof BSHArrayInitializer ) {
+                if ( dimensions < 2 )
+                    throw new EvalError(
+                            "Invalid Location for Intializer, position: "+i,
+                            nodeA, callstack );
+                currentInitializer =
+                        evalArrayInitializer(((BSHArrayInitializer)childNode),
+                                baseType, dimensions-1, callstack, interpreter);
+            } else
+                currentInitializer = childNode.accept(this);
+
+            if ( currentInitializer == Primitive.VOID )
+                throw new EvalError(
+                        "Void in array initializer, position"+i, nodeA, callstack );
+
+            // Determine if any conversion is necessary on the initializers.
+            //
+            // Quick test to see if conversions apply:
+            // If the dimensionality of the array is 1 then the elements of
+            // the initializer can be primitives or boxable types.  If it is
+            // greater then the values must be array (object) types and there
+            // are currently no conversions that we do on those.
+            // If we have conversions on those in the future then we need to
+            // get the real base type here instead of the dimensionless one.
+            Object value = currentInitializer;
+            if ( dimensions == 1 )
+            {
+                // We do a bsh cast here.  strictJava should be able to affect
+                // the cast there when we tighten control
+                try {
+                    value = Types.castObject(
+                            currentInitializer, baseType, Types.CAST );
+                } catch ( UtilEvalError e ) {
+                    throw e.toEvalError(
+                            "Error in array initializer", nodeA, callstack );
+                }
+                // unwrap any primitive, map voids to null, etc.
+                value = Primitive.unwrap( value );
+            }
+
+            // store the value in the array
+            try {
+                Array.set(initializers, i, value);
+            } catch( IllegalArgumentException e ) {
+                Interpreter.debug("illegal arg"+e);
+                throwTypeError( nodeA, baseType, currentInitializer, i, callstack );
+            } catch( ArrayStoreException e ) { // I think this can happen
+                Interpreter.debug("arraystore"+e);
+                throwTypeError(nodeA, baseType, currentInitializer, i, callstack );
+            }
+        }
+
+        return initializers;
+    }
+
+    private void throwTypeError( BSHArrayInitializer node,
+            Class baseType, Object initializer, int argNum, CallStack callstack )
+            throws EvalError
+    {
+        String rhsType;
+        if (initializer instanceof Primitive)
+            rhsType =
+                    ((Primitive)initializer).getType().getName();
+        else
+            rhsType = Reflect.normalizeClassName(
+                    initializer.getClass());
+
+        throw new EvalError ( "Incompatible type: " + rhsType
+                +" in initializer of array type: "+ baseType
+                +" at position: "+argNum, node, callstack );
+    }
 
     public Object visit(BSHArrayInitializer node) {
         throw new InterpreterError(
@@ -166,7 +495,7 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
             throw new InterpreterError( "Error, null LHSnode" );
 
         boolean strictJava = interpreter.getStrictJava();
-        LHS lhs = lhsNode.toLHS( callstack, interpreter);
+        LHS lhs = primaryExprToLHS(lhsNode);
         if ( lhs == null )
             throw new InterpreterError( "Error, null LHS" );
 
@@ -174,7 +503,7 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
         // the rhs.  This is correct Java behavior for postfix operations
         // e.g. i=1; i+=i++; // should be 2 not 3
         Object lhsValue = null;
-        if ( node.operator != ASSIGN ) // assign doesn't need the pre-value
+        if ( node.operator != ParserConstants.ASSIGN ) // assign doesn't need the pre-value
             try {
                 lhsValue = lhs.getValue();
             } catch ( UtilEvalError e ) {
@@ -197,57 +526,57 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
         try {
             switch(node.operator)
             {
-                case ASSIGN:
+                case ParserConstants.ASSIGN:
                     return lhs.assign( rhs, strictJava );
 
-                case PLUSASSIGN:
+                case ParserConstants.PLUSASSIGN:
                     return lhs.assign(
-                            node.operation(lhsValue, rhs, PLUS), strictJava );
+                            node.operation(lhsValue, rhs, ParserConstants.PLUS), strictJava );
 
-                case MINUSASSIGN:
+                case ParserConstants.MINUSASSIGN:
                     return lhs.assign(
-                            node.operation(lhsValue, rhs, MINUS), strictJava );
+                            node.operation(lhsValue, rhs, ParserConstants.MINUS), strictJava );
 
-                case STARASSIGN:
+                case ParserConstants.STARASSIGN:
                     return lhs.assign(
-                            node.operation(lhsValue, rhs, STAR), strictJava );
+                            node.operation(lhsValue, rhs, ParserConstants.STAR), strictJava );
 
-                case SLASHASSIGN:
+                case ParserConstants.SLASHASSIGN:
                     return lhs.assign(
-                            node.operation(lhsValue, rhs, SLASH), strictJava );
+                            node.operation(lhsValue, rhs, ParserConstants.SLASH), strictJava );
 
-                case ANDASSIGN:
-                case ANDASSIGNX:
+                case ParserConstants.ANDASSIGN:
+                case ParserConstants.ANDASSIGNX:
                     return lhs.assign(
-                            node.operation(lhsValue, rhs, BIT_AND), strictJava );
+                            node.operation(lhsValue, rhs, ParserConstants.BIT_AND), strictJava );
 
-                case ORASSIGN:
-                case ORASSIGNX:
+                case ParserConstants.ORASSIGN:
+                case ParserConstants.ORASSIGNX:
                     return lhs.assign(
-                            node.operation(lhsValue, rhs, BIT_OR), strictJava );
+                            node.operation(lhsValue, rhs, ParserConstants.BIT_OR), strictJava );
 
-                case XORASSIGN:
+                case ParserConstants.XORASSIGN:
                     return lhs.assign(
-                            node.operation(lhsValue, rhs, XOR), strictJava );
+                            node.operation(lhsValue, rhs, ParserConstants.XOR), strictJava );
 
-                case MODASSIGN:
+                case ParserConstants.MODASSIGN:
                     return lhs.assign(
-                            node.operation(lhsValue, rhs, MOD), strictJava );
+                            node.operation(lhsValue, rhs, ParserConstants.MOD), strictJava );
 
-                case LSHIFTASSIGN:
-                case LSHIFTASSIGNX:
+                case ParserConstants.LSHIFTASSIGN:
+                case ParserConstants.LSHIFTASSIGNX:
                     return lhs.assign(
-                            node.operation(lhsValue, rhs, LSHIFT), strictJava );
+                            node.operation(lhsValue, rhs, ParserConstants.LSHIFT), strictJava );
 
-                case RSIGNEDSHIFTASSIGN:
-                case RSIGNEDSHIFTASSIGNX:
+                case ParserConstants.RSIGNEDSHIFTASSIGN:
+                case ParserConstants.RSIGNEDSHIFTASSIGNX:
                     return lhs.assign(
-                            node.operation(lhsValue, rhs, RSIGNEDSHIFT ), strictJava );
+                            node.operation(lhsValue, rhs, ParserConstants.RSIGNEDSHIFT ), strictJava );
 
-                case RUNSIGNEDSHIFTASSIGN:
-                case RUNSIGNEDSHIFTASSIGNX:
+                case ParserConstants.RUNSIGNEDSHIFTASSIGN:
+                case ParserConstants.RUNSIGNEDSHIFTASSIGNX:
                     return lhs.assign(
-                            node.operation(lhsValue, rhs, RUNSIGNEDSHIFT),
+                            node.operation(lhsValue, rhs, ParserConstants.RUNSIGNEDSHIFT),
                             strictJava );
 
                 default:
@@ -266,14 +595,13 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
         /*
               Doing instanceof?  Next node is a type.
           */
-        if (node.kind == INSTANCEOF)
+        if (node.kind == ParserConstants.INSTANCEOF)
         {
             // null object ref is not instance of any type
             if ( lhs == Primitive.NULL )
                 return new Primitive(false);
 
-            Class rhs = ((BSHType)node.jjtGetChild(1)).getType(
-                    callstack, interpreter );
+            Class rhs = ((BSHType)node.jjtGetChild(1)).getType(this);
             /*
                // primitive (number or void) cannot be tested for instanceof
                if (lhs instanceof Primitive)
@@ -304,7 +632,7 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
               Look ahead and short circuit evaluation of the rhs if:
                   we're a boolean AND and the lhs is false.
           */
-        if ( node.kind == BOOL_AND || node.kind == BOOL_ANDX ) {
+        if ( node.kind == ParserConstants.BOOL_AND || node.kind == ParserConstants.BOOL_ANDX ) {
             Object obj = lhs;
             if ( node.isPrimitiveValue(lhs) )
                 obj = ((Primitive)lhs).getValue();
@@ -316,7 +644,7 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
               Look ahead and short circuit evaluation of the rhs if:
                   we're a boolean AND and the lhs is false.
           */
-        if ( node.kind == BOOL_OR || node.kind == BOOL_ORX ) {
+        if ( node.kind == ParserConstants.BOOL_OR || node.kind == ParserConstants.BOOL_ORX ) {
             Object obj = lhs;
             if ( node.isPrimitiveValue(lhs) )
                 obj = ((Primitive)lhs).getValue();
@@ -340,7 +668,7 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
                 )
         {
             // Special case for EQ on two wrapper objects
-            if ( (isLhsWrapper && isRhsWrapper && node.kind == EQ))
+            if ( (isLhsWrapper && isRhsWrapper && node.kind == ParserConstants.EQ))
             {
                 /*
                         Don't auto-unwrap wrappers (preserve identity semantics)
@@ -393,13 +721,13 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
         //System.out.println("binary op arbitrary obj: {"+lhs+"}, {"+rhs+"}");
         switch(node.kind)
         {
-            case EQ:
+            case ParserConstants.EQ:
                 return new Primitive((lhs == rhs));
 
-            case NE:
+            case ParserConstants.NE:
                 return new Primitive((lhs != rhs));
 
-            case PLUS:
+            case ParserConstants.PLUS:
                 if(lhs instanceof String || rhs instanceof String)
                     return lhs.toString() + rhs.toString();
 
@@ -416,21 +744,112 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
                         throw new EvalError(
                                 "illegal use of null value or 'null' literal", node, callstack);
 
-                throw new EvalError("Operator: '" + tokenImage[node.kind] +
+                throw new EvalError("Operator: '" + ParserConstants.tokenImage[node.kind] +
                         "' inappropriate for objects", node, callstack );
         }
     }
 
 
+    /**
+     @param overrideNamespace if set to true the block will be executed
+     in the current namespace (not a subordinate one).
+     <p>
+     If true *no* new BlockNamespace will be swapped onto the stack and
+     the eval will happen in the current
+     top namespace.  This is used by BshMethod, TryStatement, etc.
+     which must intialize the block first and also for those that perform
+     multiple passes in the same block.
+     */
+    public Object evalBlock( BSHBlock node,
+            boolean overrideNamespace )
+            throws EvalError
+    {
+        Object syncValue = null;
+        if ( node.isSynchronized )
+        {
+            // First node is the expression on which to sync
+            SimpleNode exp = ((SimpleNode)node.jjtGetChild(0));
+            syncValue = exp.accept(this);
+        }
+
+        Object ret;
+        if ( node.isSynchronized ) // Do the actual synchronization
+            synchronized( syncValue )
+            {
+                ret = evalBlock(node, overrideNamespace, null/*filter*/);
+            }
+        else
+            ret = evalBlock(node, overrideNamespace, null/*filter*/ );
+
+        return ret;
+    }
+
+    public Object evalBlock( BSHBlock block,
+            boolean overrideNamespace, BSHBlock.NodeFilter nodeFilter )
+            throws EvalError
+    {
+        Object ret = Primitive.VOID;
+        NameSpace enclosingNameSpace = null;
+        if ( !overrideNamespace )
+        {
+            enclosingNameSpace= callstack.top();
+            BlockNameSpace bodyNameSpace =
+                    new BlockNameSpace( enclosingNameSpace );
+
+            callstack.swap( bodyNameSpace );
+        }
+
+        int startChild = block.isSynchronized ? 1 : 0;
+        int numChildren = block.jjtGetNumChildren();
+
+        try {
+            /*
+                   Evaluate block in two passes:
+                   First do class declarations then do everything else.
+               */
+            for(int i=startChild; i<numChildren; i++)
+            {
+                SimpleNode node = ((SimpleNode)block.jjtGetChild(i));
+
+                if ( nodeFilter != null && !nodeFilter.isVisible( node ) )
+                    continue;
+
+                if ( node instanceof BSHClassDeclaration )
+                    node.accept(this);
+            }
+            for(int i=startChild; i<numChildren; i++)
+            {
+                SimpleNode node = ((SimpleNode)block.jjtGetChild(i));
+                if ( node instanceof BSHClassDeclaration )
+                    continue;
+
+                // filter nodes
+                if ( nodeFilter != null && !nodeFilter.isVisible( node ) )
+                    continue;
+
+                ret = node.accept(this);
+
+                // statement or embedded block evaluated a return statement
+                if ( ret instanceof ReturnControl )
+                    break;
+            }
+        } finally {
+            // make sure we put the namespace back when we leave.
+            if ( !overrideNamespace )
+                callstack.swap( enclosingNameSpace );
+        }
+        return ret;
+    }
+
+
     public Object visit(BSHBlock node) {
-        return node.eval(callstack, interpreter, false);
+        return evalBlock(node, false);
     }
 
 
     public Object visit(BSHCastExpression node) {
         NameSpace namespace = callstack.top();
-        Class toType = ((BSHType)node.jjtGetChild(0)).getType(
-                callstack, interpreter );
+        Class toType = ((BSHType)node.jjtGetChild(0)).getType(this);
         SimpleNode expression = (SimpleNode)node.jjtGetChild(1);
 
         // evaluate the expression
@@ -467,7 +886,7 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
 
         if ( firstNode instanceof BSHType )
         {
-            elementType=((BSHType)firstNode).getType( callstack, interpreter );
+            elementType=((BSHType)firstNode).getType(this);
             expression=((SimpleNode)node.jjtGetChild(1));
             if ( nodeCount>2 )
                 statement=((SimpleNode)node.jjtGetChild(2));
@@ -521,15 +940,15 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
                 {
                     switch(((ReturnControl)ret).kind)
                     {
-                        case RETURN:
+                        case ParserConstants.RETURN:
                             returnControl = ret;
                             breakout = true;
                             break;
 
-                        case CONTINUE:
+                        case ParserConstants.CONTINUE:
                             break;
 
-                        case BREAK:
+                        case ParserConstants.BREAK:
                             breakout = true;
                             break;
                     }
@@ -553,7 +972,7 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
 
     public Object visit(BSHFormalParameter node) {
         if ( node.jjtGetNumChildren() > 0 )
-            node.type = ((BSHType)node.jjtGetChild(0)).getType( callstack, interpreter );
+            node.type = ((BSHType)node.jjtGetChild(0)).getType(this);
         else
             node.type = node.UNTYPED;
 
@@ -623,8 +1042,8 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
         {
             if ( node.hasExpression )
             {
-                boolean cond = BSHIfStatement.evaluateCondition(
-                        node.expression, callstack, interpreter);
+                boolean cond = BshInterpreterUtil.evaluateCondition(
+                        node.expression, this);
 
                 if ( !cond )
                     break;
@@ -640,15 +1059,15 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
                 {
                     switch(((ReturnControl)ret).kind)
                     {
-                        case RETURN:
+                        case ParserConstants.RETURN:
                             returnControl = ret;
                             breakout = true;
                             break;
 
-                        case CONTINUE:
+                        case ParserConstants.CONTINUE:
                             break;
 
-                        case BREAK:
+                        case ParserConstants.BREAK:
                             breakout = true;
                             break;
                     }
@@ -670,8 +1089,8 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
     public Object visit(BSHIfStatement node) {
         Object ret = null;
 
-        if( node.evaluateCondition(
-                (SimpleNode) node.jjtGetChild(0), callstack, interpreter) )
+        if( BshInterpreterUtil.evaluateCondition(
+                (SimpleNode) node.jjtGetChild(0), this) )
             ret = ((SimpleNode)node.jjtGetChild(1)).accept(this);
         else
         if(node.jjtGetNumChildren() > 2)
@@ -728,8 +1147,8 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
 
 
     public Object visit(BSHMethodDeclaration node) {
-        node.returnType = node.evalReturnType(callstack, interpreter);
-        node.evalNodes(callstack, interpreter);
+        node.returnType = evalMethodReturnType(node);
+        evalNodes(node);
 
         // Install an *instance* of this method in the namespace.
         // See notes in BshMethod
@@ -748,6 +1167,94 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
         }
 
         return Primitive.VOID;
+    }
+
+
+    public Class evalReturnType( BSHReturnType node ) throws EvalError
+    {
+        if ( node.isVoid )
+            return Void.TYPE;
+        else
+            return getTypeNode(node).getType(this);
+    }
+
+
+    public BSHType getTypeNode(BSHReturnType node) {
+        return (BSHType)node.jjtGetChild(0);
+    }
+
+    public String getTypeDescriptor( BSHReturnType node,
+            String defaultPackage )
+    {
+        if ( node.isVoid )
+            return "V";
+        else
+            return getTypeNode(node).getTypeDescriptor(
+                    callstack, interpreter, defaultPackage );
+    }
+
+
+    public String getReturnTypeDescriptor(BSHMethodDeclaration node,
+            String defaultPackage )
+    {
+        node.insureNodesParsed();
+        if ( node.returnTypeNode == null )
+            return null;
+        else
+            return getTypeDescriptor(node.returnTypeNode, defaultPackage );
+    }
+
+    public BSHReturnType getReturnTypeNode(BSHMethodDeclaration node) {
+        node.insureNodesParsed();
+        return node.returnTypeNode;
+    }
+
+    /**
+     Evaluate the return type node.
+     @return the type or null indicating loosely typed return
+     */
+    public Class evalMethodReturnType( BSHMethodDeclaration node )
+            throws EvalError
+    {
+        node.insureNodesParsed();
+        if ( node.returnTypeNode != null )
+            return evalReturnType(node.returnTypeNode);
+        else
+            return null;
+    }
+
+
+    public void evalNodes(BSHMethodDeclaration node)
+            throws EvalError
+    {
+        node.insureNodesParsed();
+
+        // validate that the throws names are class names
+        for(int i=node.firstThrowsClause; i<node.numThrows+node.firstThrowsClause; i++)
+            ((BSHAmbiguousName)node.jjtGetChild(i)).toClass(
+                    callstack, interpreter );
+
+        node.paramsNode.accept(this);
+
+        // if strictJava mode, check for loose parameters and return type
+        if ( interpreter.getStrictJava() )
+        {
+            for(int i=0; i<node.paramsNode.paramTypes.length; i++)
+                if ( node.paramsNode.paramTypes[i] == null )
+                    // Warning: Null callstack here.  Don't think we need
+                    // a stack trace to indicate how we sourced the method.
+                    throw new EvalError(
+                            "(Strict Java Mode) Undeclared argument type, parameter: " +
+                                    node.paramsNode.getParamNames()[i] + " in method: "
+                                    + node.name, node, null );
+
+            if ( node.returnType == null )
+                // Warning: Null callstack here.  Don't think we need
+                // a stack trace to indicate how we sourced the method.
+                throw new EvalError(
+                        "(Strict Java Mode) Undeclared return type for method: "
+                                + node.name, node, null );
+        }
     }
 
 
@@ -808,20 +1315,295 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
     }
 
 
-    public Object visit(BSHPrimaryExpression node) {
-        return node.eval( false, callstack, interpreter );
+    /**
+     Evaluate to a value object.
+     */
+    private LHS primaryExprToLHS(BSHPrimaryExpression node)
+            throws EvalError
+    {
+        Object obj = evalPrimaryExpr(node, true);
+
+        if ( ! (obj instanceof LHS) )
+            throw new EvalError("Can't assign to:", node, callstack );
+        else
+            return (LHS)obj;
     }
 
 
+    /*
+         Our children are a prefix expression and any number of suffixes.
+         <p>
+
+         We don't eval() any nodes until the suffixes have had an
+         opportunity to work through them.  This lets the suffixes decide
+         how to interpret an ambiguous name (e.g. for the .class operation).
+     */
+    private Object evalPrimaryExpr( BSHPrimaryExpression node, boolean toLHS )
+            throws EvalError
+    {
+        //CallStack callstack = visitor.getCallstack();
+        //Interpreter interpreter = visitor.getInterpreter();
+
+        Object obj = node.jjtGetChild(0);
+        int numChildren = node.jjtGetNumChildren();
+
+        for(int i=1; i<numChildren; i++)
+            obj = doSuffix(((BSHPrimarySuffix)node.jjtGetChild(i)), obj, toLHS);
+
+        /*
+              If the result is a Node eval() it to an object or LHS
+              (as determined by toLHS)
+          */
+        if ( obj instanceof SimpleNode )
+            if ( obj instanceof BSHAmbiguousName)
+                if ( toLHS )
+                    obj = ((BSHAmbiguousName)obj).toLHS(
+                            callstack, interpreter);
+                else
+                    obj = ((BSHAmbiguousName)obj).toObject(
+                            callstack, interpreter);
+            else
+                // Some arbitrary kind of node
+                if ( toLHS )
+                    // is this right?
+                    throw new EvalError("Can't assign to prefix.",
+                            node, callstack );
+                else
+                    obj = ((SimpleNode)obj).accept(this);
+
+        // return LHS or value object as determined by toLHS
+        if ( obj instanceof LHS )
+            if ( toLHS )
+                return obj;
+            else
+                try {
+                    return ((LHS)obj).getValue();
+                } catch ( UtilEvalError e ) {
+                    throw e.toEvalError( node, callstack );
+                }
+        else
+            return obj;
+    }
+
+
+    public Object visit(BSHPrimaryExpression node) {
+        return evalPrimaryExpr(node, false);
+    }
+
+
+    private Object doSuffix( BSHPrimarySuffix node,
+            Object obj, boolean toLHS)
+            throws EvalError
+    {
+        // Handle ".class" suffix operation
+        // Prefix must be a BSHType
+        if ( node.operation == BSHPrimarySuffix.CLASS )
+            if ( obj instanceof BSHType) {
+                if ( toLHS )
+                    throw new EvalError("Can't assign .class",
+                            node, callstack );
+                NameSpace namespace = callstack.top();
+                return ((BSHType)obj).getType(this);
+            } else
+                throw new EvalError(
+                        "Attempt to use .class suffix on non class.",
+                        node, callstack );
+
+        /*
+              Evaluate our prefix if it needs evaluating first.
+              If this is the first evaluation our prefix mayb be a Node
+              (directly from the PrimaryPrefix) - eval() it to an object.
+              If it's an LHS, resolve to a value.
+
+              Note: The ambiguous name construct is now necessary where the node
+              may be an ambiguous name.  If this becomes common we might want to
+              make a static method nodeToObject() or something.  The point is
+              that we can't just eval() - we need to direct the evaluation to
+              the context sensitive type of result; namely object, class, etc.
+          */
+        if ( obj instanceof SimpleNode )
+            if ( obj instanceof BSHAmbiguousName)
+                obj = ((BSHAmbiguousName)obj).toObject(callstack, interpreter);
+            else
+                obj = ((SimpleNode)obj).accept(this);
+        else
+        if ( obj instanceof LHS )
+            try {
+                obj = ((LHS)obj).getValue();
+            } catch ( UtilEvalError e ) {
+                throw e.toEvalError( node, callstack );
+            }
+
+        try
+        {
+            switch(node.operation)
+            {
+                case BSHPrimarySuffix.INDEX:
+                    return doIndex(node, obj, toLHS );
+
+                case BSHPrimarySuffix.NAME:
+                    return doName(node, obj, toLHS );
+
+                case BSHPrimarySuffix.PROPERTY:
+                    return doProperty( node, toLHS, obj);
+
+                default:
+                    throw new InterpreterError( "Unknown suffix type" );
+            }
+        }
+        catch(ReflectError e)
+        {
+            throw new EvalError("reflection error: " + e, node, callstack, e );
+        }
+        catch(InvocationTargetException e)
+        {
+            throw new TargetError( "target exception", e.getTargetException(),
+                    node, callstack, true);
+        }
+    }
+
+    /*
+         Field access, .length on array, or a method invocation
+         Must handle toLHS case for each.
+     */
+    private Object doName( BSHPrimarySuffix node,
+            Object obj, boolean toLHS)
+            throws EvalError, ReflectError, InvocationTargetException
+    {
+        try {
+            // .length on array
+            if ( node.field.equals("length") && obj.getClass().isArray() )
+                if ( toLHS )
+                    throw new EvalError(
+                            "Can't assign array length", node, callstack );
+                else
+                    return new Primitive(Array.getLength(obj));
+
+            // field access
+            if ( node.jjtGetNumChildren() == 0 )
+                if ( toLHS )
+                    return Reflect.getLHSObjectField(obj, node.field);
+                else
+                    return Reflect.getObjectFieldValue( obj, node.field );
+
+            // Method invocation
+            // (LHS or non LHS evaluation can both encounter method calls)
+            Object[] oa = ((BSHArguments)node.jjtGetChild(0)).getArguments(this);
+
+            // TODO:
+            // Note: this try/catch block is copied from BSHMethodInvocation
+            // we need to factor out this common functionality and make sure
+            // we handle all cases ... (e.g. property style access, etc.)
+            // maybe move this to Reflect ?
+            try {
+                return Reflect.invokeObjectMethod(
+                        obj, node.field, oa, interpreter, callstack, node );
+            } catch ( ReflectError e ) {
+                throw new EvalError(
+                        "Error in method invocation: " + e.getMessage(),
+                        node, callstack, e );
+            } catch ( InvocationTargetException e )
+            {
+                String msg = "Method Invocation "+node.field;
+                Throwable te = e.getTargetException();
+
+                /*
+                        Try to squeltch the native code stack trace if the exception
+                        was caused by a reflective call back into the bsh interpreter
+                        (e.g. eval() or source()
+                    */
+                boolean isNative = true;
+                if ( te instanceof EvalError )
+                    if ( te instanceof TargetError )
+                        isNative = ((TargetError)te).inNativeCode();
+                    else
+                        isNative = false;
+
+                throw new TargetError( msg, te, node, callstack, isNative );
+            }
+
+        } catch ( UtilEvalError e ) {
+            throw e.toEvalError( node, callstack );
+        }
+    }
+
+
+    /**
+     array index.
+     Must handle toLHS case.
+     */
+    private Object doIndex( BSHPrimarySuffix node,
+            Object obj, boolean toLHS )
+            throws EvalError, ReflectError
+    {
+        int index = BshInterpreterUtil.getIndexAux( obj, this, node );
+        if ( toLHS )
+            return new LHS(obj, index);
+        else
+            try {
+                return Reflect.getIndex(obj, index);
+            } catch ( UtilEvalError e ) {
+                throw e.toEvalError( node, callstack );
+            }
+    }
+
+
+    /**
+     Property access.
+     Must handle toLHS case.
+     */
+    private Object doProperty( BSHPrimarySuffix node, boolean toLHS, Object obj )
+            throws EvalError
+    {
+        if(obj == Primitive.VOID)
+            throw new EvalError(
+                    "Attempt to access property on undefined variable or class name",
+                    node, callstack );
+
+        if ( obj instanceof Primitive )
+            throw new EvalError("Attempt to access property on a primitive",
+                    node, callstack );
+
+        Object value = ((SimpleNode)node.jjtGetChild(0)).accept(this);
+
+        if ( !( value instanceof String ) )
+            throw new EvalError(
+                    "Property expression must be a String or identifier.",
+                    node, callstack );
+
+        if ( toLHS )
+            return new LHS(obj, (String)value);
+
+        // Property style access to Hashtable or Map
+        CollectionManager cm = CollectionManager.getCollectionManager();
+        if ( cm.isMap( obj ) )
+        {
+            Object val = cm.getFromMap( obj, value/*key*/ );
+            return ( val == null ?  val = Primitive.NULL : val );
+        }
+
+        try {
+            return Reflect.getObjectProperty( obj, (String)value );
+        }
+        catch ( UtilEvalError e)
+        {
+            throw e.toEvalError( "Property: "+value, node, callstack );
+        }
+        catch (ReflectError e)
+        {
+            throw new EvalError("No such property: " + value, node, callstack );
+        }
+    }
+
     public Object visit(BSHPrimarySuffix node) {
         throw new InterpreterError(
-                "Unimplemented or inappropriate for BSHPrimarySuffix class.");
+                "Unimplemented or inappropriate for BSHPrimarySuffix class.", node);
     }
 
 
     public Object visit(BSHPrimitiveType node) {
         throw new InterpreterError(
-                "Unimplemented or inappropriate for BSHPrimarySuffix class.");
+                "Unimplemented or inappropriate for BSHPrimitiveType class.", node);
     }
 
 
@@ -921,7 +1703,7 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
             }
         }
 
-        if ( returnControl != null && returnControl.kind == RETURN )
+        if ( returnControl != null && returnControl.kind == ParserConstants.RETURN )
             return returnControl;
         else
             return Primitive.VOID;
@@ -934,7 +1716,7 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
                 evalTrue = (SimpleNode)node.jjtGetChild(1),
                 evalFalse = (SimpleNode)node.jjtGetChild(2);
 
-        if ( BSHIfStatement.evaluateCondition(cond, callstack, interpreter) )
+        if ( BshInterpreterUtil.evaluateCondition(cond, this) )
             return evalTrue.accept(this);
         else
             return evalFalse.accept(this);
@@ -1101,14 +1883,14 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
 
     public Object visit(BSHType node) {
         throw new InterpreterError(
-                "Unimplemented or inappropriate for BSHType class.");
+                "Unimplemented or inappropriate for BSHType class.", node);
     }
 
     public Object visit(BSHTypedVariableDeclaration node) {
         try {
             NameSpace namespace = callstack.top();
             BSHType typeNode = node.getTypeNode();
-            Class type = typeNode.getType( callstack, interpreter );
+            Class type = typeNode.getType(this);
 
             BSHVariableDeclarator [] bvda = node.getDeclarators();
             for (int i = 0; i < bvda.length; i++)
@@ -1117,7 +1899,7 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
 
                 // Type node is passed down the chain for array initializers
                 // which need it under some circumstances
-                Object value = dec.eval( typeNode, callstack, interpreter);
+                Object value = evalVariableDeclarator(dec, typeNode);
 
                 try {
                     namespace.setTypedVariable(
@@ -1141,9 +1923,8 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
         // then we need an LHS to which to assign the result.  Otherwise
         // just do the unary operation for the value.
         try {
-            if ( node.kind == INCR || node.kind == DECR ) {
-                LHS lhs = ((BSHPrimaryExpression)simpleNode).toLHS(
-                        callstack, interpreter );
+            if ( node.kind == ParserConstants.INCR || node.kind == ParserConstants.DECR ) {
+                LHS lhs = primaryExprToLHS((BSHPrimaryExpression) simpleNode);
                 return node.lhsUnaryOperation(lhs, interpreter.getStrictJava());
             } else
                 return
@@ -1151,6 +1932,52 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
         } catch ( UtilEvalError e ) {
             throw e.toEvalError( node, callstack );
         }
+    }
+
+    /**
+     Evaluate the optional initializer value.
+     (The name was set at parse time.)
+
+     A variable declarator can be evaluated with or without preceding
+     type information. Currently the type info is only used by array
+     initializers in the case where there is no explicitly declared type.
+
+     @param typeNode is the BSHType node.  Its info is passed through to any
+     variable intializer children for the case where the array initializer
+     does not declare the type explicitly. e.g.
+     int [] a = { 1, 2 };
+     typeNode may be null to indicate no type information available.
+     */
+    private Object evalVariableDeclarator(BSHVariableDeclarator node, BSHType typeNode)
+            throws EvalError
+    {
+        // null value means no value
+        Object value = null;
+
+        if ( node.jjtGetNumChildren() > 0 )
+        {
+            SimpleNode initializer = (SimpleNode)node.jjtGetChild(0);
+
+            /*
+                   If we have type info and the child is an array initializer
+                   pass it along...  Else use the default eval style.
+                   (This allows array initializer to handle the problem...
+                   allowing for future enhancements in loosening types there).
+               */
+            if ( (typeNode != null)
+                    && initializer instanceof BSHArrayInitializer
+                    )
+                value = evalArrayInitializer(((BSHArrayInitializer) initializer),
+                        typeNode.getBaseType(), typeNode.getArrayDims(),
+                        callstack, interpreter);
+            else
+                value = initializer.accept(this);
+        }
+
+        if ( value == Primitive.VOID )
+            throw new EvalError("Void initializer.", node, callstack );
+
+        return value;
     }
 
     public Object visit(BSHVariableDeclarator node) {
@@ -1179,7 +2006,7 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
 
         boolean doOnceFlag = node.isDoStatement;
 
-        while (doOnceFlag || BSHIfStatement.evaluateCondition(condExp, callstack, interpreter)) {
+        while (doOnceFlag || BshInterpreterUtil.evaluateCondition(condExp, this)) {
             doOnceFlag = false;
             // no body?
             if ( body == null ) {
@@ -1188,13 +2015,13 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
             Object ret = body.accept(this);
             if (ret instanceof ReturnControl) {
                 switch(( (ReturnControl)ret).kind ) {
-                    case RETURN:
+                    case ParserConstants.RETURN:
                         return ret;
 
-                    case CONTINUE:
+                    case ParserConstants.CONTINUE:
                         break;
 
-                    case BREAK:
+                    case ParserConstants.BREAK:
                         return Primitive.VOID;
                 }
             }

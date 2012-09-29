@@ -49,15 +49,6 @@ public class BSHArrayDimensions extends SimpleNode
     public void addDefinedDimension() { numDefinedDims++; }
     public void addUndefinedDimension() { numUndefinedDims++; }
 
-    public Object eval( 
-			Class type, CallStack callstack, Interpreter interpreter )
-		throws EvalError
-	{
-		if ( Interpreter.DEBUG ) Interpreter.debug("array base type = "+type);
-		baseType = type;
-		return this.accept(new BshEvaluatingVisitor(callstack, interpreter));
-	}
-
     public <T> T accept(BshNodeVisitor<T> visitor) {
         return visitor.visit(this);
     }
