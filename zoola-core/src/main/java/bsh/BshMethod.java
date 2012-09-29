@@ -27,6 +27,7 @@ package bsh;
 import bsh.ast.BSHBlock;
 import bsh.ast.BSHMethodDeclaration;
 import bsh.ast.SimpleNode;
+import bsh.interpreter.BshEvaluatingVisitor;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.InvocationTargetException;
@@ -354,8 +355,7 @@ public class BshMethod
 			callstack.push( localNameSpace );
 
 		// Invoke the block, overriding namespace with localNameSpace
-		Object ret = methodBody.eval( 
-			callstack, interpreter, true/*override*/ );
+        Object ret = new BshEvaluatingVisitor(callstack,  interpreter).evalBlock(methodBody, true);
 
 		// save the callstack including the called method, just for error mess
 		CallStack returnStack = callstack.copy();

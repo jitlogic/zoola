@@ -41,15 +41,6 @@ public class BSHMethodInvocation extends SimpleNode
 		return (BSHArguments)jjtGetChild(1);
 	}
 
-	/**
-		Evaluate the method invocation with the specified callstack and 
-		interpreter
-	*/
-	public Object eval( CallStack callstack, Interpreter interpreter )
-		throws EvalError
-	{
-        return this.accept(new BshEvaluatingVisitor(callstack, interpreter));
-    }
 
     public <T> T accept(BshNodeVisitor<T> visitor) {
         return visitor.visit(this);

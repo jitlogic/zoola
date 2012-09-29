@@ -30,7 +30,7 @@ import bsh.*;
 /**
 	Implement binary expressions...
 	Note: this is too complicated... need some cleanup and simplification.
-	@see bsh.Primitive.binaryOperation
+	@see bsh.Primitive
 */
 public class BSHBinaryExpression extends SimpleNode
 	implements ParserConstants
@@ -38,12 +38,6 @@ public class BSHBinaryExpression extends SimpleNode
     public int kind;
 
     public BSHBinaryExpression(int id) { super(id); }
-
-    public Object eval( CallStack callstack, Interpreter interpreter)
-		throws EvalError
-    {
-        return this.accept(new BshEvaluatingVisitor(callstack, interpreter));
-    }
 
 	/*
 		object is a non-null and non-void Primitive type

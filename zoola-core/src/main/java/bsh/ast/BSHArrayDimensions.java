@@ -26,8 +26,7 @@
 package bsh.ast;
 
 import bsh.*;
-
-import java.lang.reflect.Array;
+import bsh.interpreter.BshEvaluatingVisitor;
 
 /**
 	The name of this class is somewhat misleading.  This covers both the case
@@ -49,21 +48,6 @@ public class BSHArrayDimensions extends SimpleNode
 
     public void addDefinedDimension() { numDefinedDims++; }
     public void addUndefinedDimension() { numUndefinedDims++; }
-
-    public Object eval( 
-			Class type, CallStack callstack, Interpreter interpreter )
-		throws EvalError
-	{
-		if ( Interpreter.DEBUG ) Interpreter.debug("array base type = "+type);
-		baseType = type;
-		return eval( callstack, interpreter );
-	}
-
-    public Object eval( CallStack callstack, Interpreter interpreter )
-		throws EvalError
-    {
-        return this.accept(new BshEvaluatingVisitor(callstack, interpreter));
-    }
 
     public <T> T accept(BshNodeVisitor<T> visitor) {
         return visitor.visit(this);

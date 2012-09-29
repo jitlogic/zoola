@@ -38,15 +38,6 @@ public class BSHCastExpression extends SimpleNode {
 
     public BSHCastExpression(int id) { super(id); }
 
-	/**
-		@return the result of the cast.
-	*/
-	public Object eval(
-		CallStack callstack, Interpreter interpreter ) throws EvalError
-    {
-        return this.accept(new BshEvaluatingVisitor(callstack, interpreter));
-    }
-
     public <T> T accept(BshNodeVisitor<T> visitor) {
         return visitor.visit(this);
     }
