@@ -25,6 +25,7 @@
 package bsh;
 
 import bsh.ast.SimpleNode;
+import bsh.interpreter.BshEvaluatingVisitor;
 
 import java.io.BufferedReader;
 import java.io.File;

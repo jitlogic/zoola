@@ -25,6 +25,7 @@
 package bsh;
 
 import bsh.ast.*;
+import bsh.interpreter.BshEvaluatingVisitor;
 import org.objectweb.asm.*;
 import org.objectweb.asm.Type;
 

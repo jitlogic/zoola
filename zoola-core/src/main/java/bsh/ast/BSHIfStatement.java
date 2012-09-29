@@ -26,6 +26,7 @@
 package bsh.ast;
 
 import bsh.*;
+import bsh.interpreter.BshEvaluatingVisitor;
 
 public class BSHIfStatement extends SimpleNode
 {

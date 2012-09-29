@@ -1,5 +1,6 @@
-package bsh;
+package bsh.interpreter;
 
+import bsh.*;
 import bsh.ast.*;
 
 import java.lang.reflect.Array;

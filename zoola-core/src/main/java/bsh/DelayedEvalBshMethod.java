@@ -27,6 +27,7 @@ package bsh;
 import bsh.ast.BSHBlock;
 import bsh.ast.BSHFormalParameters;
 import bsh.ast.BSHReturnType;
+import bsh.interpreter.BshEvaluatingVisitor;
 
 public class DelayedEvalBshMethod extends BshMethod
 {

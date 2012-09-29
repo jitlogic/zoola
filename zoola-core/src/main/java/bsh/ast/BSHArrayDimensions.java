@@ -26,8 +26,7 @@
 package bsh.ast;
 
 import bsh.*;
-
-import java.lang.reflect.Array;
+import bsh.interpreter.BshEvaluatingVisitor;
 
 /**
 	The name of this class is somewhat misleading.  This covers both the case

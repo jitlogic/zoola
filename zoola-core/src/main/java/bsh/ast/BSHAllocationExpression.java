@@ -26,6 +26,7 @@
 package bsh.ast;
 
 import bsh.*;
+import bsh.interpreter.BshEvaluatingVisitor;
 
 import java.lang.reflect.Array;
 import java.lang.reflect.InvocationTargetException;

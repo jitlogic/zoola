@@ -25,6 +25,7 @@
 package bsh.ast;
 
 import bsh.*;
+import bsh.interpreter.BshEvaluatingVisitor;
 
 public class BSHMethodDeclaration extends SimpleNode
 {
