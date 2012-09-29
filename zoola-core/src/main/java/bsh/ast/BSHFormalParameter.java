@@ -39,17 +39,6 @@ public class BSHFormalParameter extends SimpleNode
 
 	public BSHFormalParameter(int id) { super(id); }
 
-	public String getTypeDescriptor( 
-		CallStack callstack, Interpreter interpreter, String defaultPackage )
-	{
-		if ( jjtGetNumChildren() > 0 )
-			return ((BSHType)jjtGetChild(0)).getTypeDescriptor(
-				callstack, interpreter, defaultPackage );
-		else
-			// this will probably not get used
-			return "Ljava/lang/Object;";  // Object type
-	}
-
     public <T> T accept(BshNodeVisitor<T> visitor) {
         return visitor.visit(this);
     }

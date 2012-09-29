@@ -9,8 +9,6 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-//import static bsh.ParserConstants.*;
-
 /**
  * @author RLE <rafal.lewczuk@gmail.com>
  */
@@ -35,6 +33,7 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
         return interpreter;
     }
 
+    @Override
     public Object visit(BSHAllocationExpression node) {
         // type is either a class name or a primitive type
         SimpleNode type = (SimpleNode)node.jjtGetChild(0);
@@ -64,18 +63,16 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
     {
         NameSpace namespace = callstack.top();
 
-        Object[] args = argumentsNode.getArguments(this);
+        Object[] args = getArguments(argumentsNode);
         if ( args == null)
             throw new EvalError( "Null args in new.", node, callstack );
 
         // Look for scripted class object
-        Object obj = nameNode.toObject(
-                callstack, interpreter, false/* force class*/ );
+        Object obj = ambiguousNameToObject(nameNode, false/* force class*/ );
 
         // Try regular class
 
-        obj = nameNode.toObject(
-                callstack, interpreter, true/*force class*/ );
+        obj = ambiguousNameToObject( nameNode, true/*force class*/ );
 
         Class type = null;
         if ( obj instanceof ClassIdentifier )
@@ -196,7 +193,7 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
             throws EvalError
     {
         NameSpace namespace = callstack.top();
-        Class type = nameNode.toClass( callstack, interpreter );
+        Class type = ambiguousNameToClass( nameNode );
         if ( type == null )
             throw new EvalError( "Class " + nameNode.getName(namespace)
                     + " not found.", node, callstack );
@@ -282,6 +279,8 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
         }
     }
 
+
+    @Override
     public Object visit(BSHAmbiguousName node) {
         throw new InterpreterError(
                 "Don't know how to eval an ambiguous name!"
@@ -289,9 +288,81 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
     }
 
 
+    public Object ambiguousNameToObject( BSHAmbiguousName node )
+            throws EvalError
+    {
+        return ambiguousNameToObject( node, false );
+    }
+
+    public Object ambiguousNameToObject( BSHAmbiguousName node,
+            boolean forceClass )
+            throws EvalError
+    {
+        try {
+            return
+                    node.getName( callstack.top() ).toObject(
+                            this, forceClass );
+        } catch ( UtilEvalError e ) {
+            throw e.toEvalError( node, callstack );
+        }
+    }
+
+    public Class ambiguousNameToClass( BSHAmbiguousName node )
+            throws EvalError
+    {
+        try {
+            return node.getName( callstack.top() ).toClass();
+        } catch ( ClassNotFoundException e ) {
+            throw new EvalError( e.getMessage(), node, callstack, e );
+        } catch ( UtilEvalError e2 ) {
+            // ClassPathException is a type of UtilEvalError
+            throw e2.toEvalError( node, callstack );
+        }
+    }
+
+    public LHS ambiguousNameToLHS( BSHAmbiguousName node )
+            throws EvalError
+    {
+        try {
+            return node.getName( callstack.top() ).toLHS( this );
+        } catch ( UtilEvalError e ) {
+            throw e.toEvalError( node, callstack );
+        }
+    }
+
+
+    @Override
     public Object visit(BSHArguments node) {
         throw new InterpreterError(
                 "Unimplemented or inappropriate for BSHArguments class.");
+    }
+
+
+    /*
+         Disallowing VOIDs here was an easy way to support the throwing of a
+         more descriptive error message on use of an undefined argument to a
+         method call (very common).  If it ever turns out that we need to
+         support that for some reason we'll have to re-evaluate how we get
+         "meta-information" about the arguments in the various invoke() methods
+         that take Object [].  We could either pass BSHArguments down to
+         overloaded forms of the methods or throw an exception subtype
+         including the argument position back up, where the error message would
+         be compounded.
+     */
+    public Object[] getArguments( BSHArguments node )
+            throws EvalError
+    {
+        // evaluate each child
+        Object[] args = new Object[node.jjtGetNumChildren()];
+        for(int i = 0; i < args.length; i++)
+        {
+            args[i] = ((SimpleNode)node.jjtGetChild(i)).accept(this);
+            if ( args[i] == Primitive.VOID )
+                throw new EvalError( "Undefined argument: " +
+                        ((SimpleNode)node.jjtGetChild(i)).getText(), node, callstack );
+        }
+
+        return args;
     }
 
 
@@ -307,6 +378,7 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
 
      The structure of the array dims is maintained in dimensions.
      */
+    @Override
     public Object visit(BSHArrayDimensions node) {
         SimpleNode child = (SimpleNode)node.jjtGetChild(0);
 
@@ -481,12 +553,15 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
                 +" at position: "+argNum, node, callstack );
     }
 
+
+    @Override
     public Object visit(BSHArrayInitializer node) {
         throw new InterpreterError(
                 "Unimplemented or inappropriate for BSHArrayInitializer class.");
     }
 
 
+    @Override
     public Object visit(BSHAssignment node) {
         BSHPrimaryExpression lhsNode =
                 (BSHPrimaryExpression)node.jjtGetChild(0);
@@ -531,52 +606,52 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
 
                 case ParserConstants.PLUSASSIGN:
                     return lhs.assign(
-                            node.operation(lhsValue, rhs, ParserConstants.PLUS), strictJava );
+                            BshInterpreterUtil.operation(node, lhsValue, rhs, ParserConstants.PLUS), strictJava );
 
                 case ParserConstants.MINUSASSIGN:
                     return lhs.assign(
-                            node.operation(lhsValue, rhs, ParserConstants.MINUS), strictJava );
+                            BshInterpreterUtil.operation(node, lhsValue, rhs, ParserConstants.MINUS), strictJava );
 
                 case ParserConstants.STARASSIGN:
                     return lhs.assign(
-                            node.operation(lhsValue, rhs, ParserConstants.STAR), strictJava );
+                            BshInterpreterUtil.operation(node, lhsValue, rhs, ParserConstants.STAR), strictJava );
 
                 case ParserConstants.SLASHASSIGN:
                     return lhs.assign(
-                            node.operation(lhsValue, rhs, ParserConstants.SLASH), strictJava );
+                            BshInterpreterUtil.operation(node, lhsValue, rhs, ParserConstants.SLASH), strictJava );
 
                 case ParserConstants.ANDASSIGN:
                 case ParserConstants.ANDASSIGNX:
                     return lhs.assign(
-                            node.operation(lhsValue, rhs, ParserConstants.BIT_AND), strictJava );
+                            BshInterpreterUtil.operation(node, lhsValue, rhs, ParserConstants.BIT_AND), strictJava );
 
                 case ParserConstants.ORASSIGN:
                 case ParserConstants.ORASSIGNX:
                     return lhs.assign(
-                            node.operation(lhsValue, rhs, ParserConstants.BIT_OR), strictJava );
+                            BshInterpreterUtil.operation(node, lhsValue, rhs, ParserConstants.BIT_OR), strictJava );
 
                 case ParserConstants.XORASSIGN:
                     return lhs.assign(
-                            node.operation(lhsValue, rhs, ParserConstants.XOR), strictJava );
+                            BshInterpreterUtil.operation(node, lhsValue, rhs, ParserConstants.XOR), strictJava );
 
                 case ParserConstants.MODASSIGN:
                     return lhs.assign(
-                            node.operation(lhsValue, rhs, ParserConstants.MOD), strictJava );
+                            BshInterpreterUtil.operation(node, lhsValue, rhs, ParserConstants.MOD), strictJava );
 
                 case ParserConstants.LSHIFTASSIGN:
                 case ParserConstants.LSHIFTASSIGNX:
                     return lhs.assign(
-                            node.operation(lhsValue, rhs, ParserConstants.LSHIFT), strictJava );
+                            BshInterpreterUtil.operation(node, lhsValue, rhs, ParserConstants.LSHIFT), strictJava );
 
                 case ParserConstants.RSIGNEDSHIFTASSIGN:
                 case ParserConstants.RSIGNEDSHIFTASSIGNX:
                     return lhs.assign(
-                            node.operation(lhsValue, rhs, ParserConstants.RSIGNEDSHIFT ), strictJava );
+                            BshInterpreterUtil.operation(node, lhsValue, rhs, ParserConstants.RSIGNEDSHIFT ), strictJava );
 
                 case ParserConstants.RUNSIGNEDSHIFTASSIGN:
                 case ParserConstants.RUNSIGNEDSHIFTASSIGNX:
                     return lhs.assign(
-                            node.operation(lhsValue, rhs, ParserConstants.RUNSIGNEDSHIFT),
+                            BshInterpreterUtil.operation(node, lhsValue, rhs, ParserConstants.RUNSIGNEDSHIFT),
                             strictJava );
 
                 default:
@@ -589,6 +664,7 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
     }
 
 
+    @Override
     public Object visit(BSHBinaryExpression node) {
         Object lhs = ((SimpleNode)node.jjtGetChild(0)).accept(this);
 
@@ -601,7 +677,7 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
             if ( lhs == Primitive.NULL )
                 return new Primitive(false);
 
-            Class rhs = ((BSHType)node.jjtGetChild(1)).getType(this);
+            Class rhs = getType(((BSHType)node.jjtGetChild(1)));
             /*
                // primitive (number or void) cannot be tested for instanceof
                if (lhs instanceof Primitive)
@@ -842,14 +918,16 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
     }
 
 
+    @Override
     public Object visit(BSHBlock node) {
         return evalBlock(node, false);
     }
 
 
+    @Override
     public Object visit(BSHCastExpression node) {
         NameSpace namespace = callstack.top();
-        Class toType = ((BSHType)node.jjtGetChild(0)).getType(this);
+        Class toType = getType(((BSHType)node.jjtGetChild(0)));
         SimpleNode expression = (SimpleNode)node.jjtGetChild(1);
 
         // evaluate the expression
@@ -866,16 +944,52 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
     }
 
 
+    @Override
     public Object visit(BSHClassDeclaration node) {
         synchronized (node) {
             if (node.generatedClass == null) {
-                node.generatedClass = node.generateClass(callstack, interpreter);
+                node.generatedClass = generateClass(node);
             }
             return node.generatedClass;
         }
     }
 
+    public Class<?> generateClass(BSHClassDeclaration node) throws EvalError {
+        int child = 0;
 
+        // resolve superclass if any
+        Class superClass = null;
+        if ( node.extend ) {
+            BSHAmbiguousName superNode = (BSHAmbiguousName)node.jjtGetChild(child++);
+            superClass = ambiguousNameToClass( superNode );
+        }
+
+        // Get interfaces
+        Class [] interfaces = new Class[node.numInterfaces];
+        for( int i=0; i<node.numInterfaces; i++) {
+            BSHAmbiguousName node1 = (BSHAmbiguousName)node.jjtGetChild(child++);
+            interfaces[i] = ambiguousNameToClass(node1);
+            if ( !interfaces[i].isInterface() )
+                throw new EvalError(
+                        "Type: "+node1.text+" is not an interface!",
+                        node, callstack );
+        }
+
+        BSHBlock block;
+        // Get the class body BSHBlock
+        if ( child < node.jjtGetNumChildren() )
+            block = (BSHBlock) node.jjtGetChild(child);
+        else
+            block = new BSHBlock( ParserTreeConstants.JJTBLOCK );
+
+        return ClassGenerator.getClassGenerator().generateClass(
+                node.name, node.modifiers, interfaces, superClass, block, node.isInterface,
+                callstack, interpreter );
+    }
+
+
+
+    @Override
     public Object visit(BSHEnhancedForStatement node) {
         Class elementType = null;
         SimpleNode expression, statement=null;
@@ -886,7 +1000,7 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
 
         if ( firstNode instanceof BSHType )
         {
-            elementType=((BSHType)firstNode).getType(this);
+            elementType=getType(((BSHType)firstNode));
             expression=((SimpleNode)node.jjtGetChild(1));
             if ( nodeCount>2 )
                 statement=((SimpleNode)node.jjtGetChild(2));
@@ -964,22 +1078,36 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
     }
 
 
+    @Override
     public Object visit(BSHFormalComment node) {
         throw new InterpreterError(
                 "Unimplemented or inappropriate for BSHFormalComment class.");
     }
 
 
+    @Override
     public Object visit(BSHFormalParameter node) {
         if ( node.jjtGetNumChildren() > 0 )
-            node.type = ((BSHType)node.jjtGetChild(0)).getType(this);
+            node.type = getType(((BSHType)node.jjtGetChild(0)));
         else
             node.type = node.UNTYPED;
 
         return node.type;
     }
 
+    public String getFormalParameterTypeDescriptor( BSHFormalParameter node,
+             String defaultPackage )
+    {
+        if ( node.jjtGetNumChildren() > 0 )
+            return getTypeDescriptor(((BSHType) node.jjtGetChild(0)), defaultPackage);
+        else
+            // this will probably not get used
+            return "Ljava/lang/Object;";  // Object type
+    }
 
+
+
+    @Override
     public Object visit(BSHFormalParameters node) {
         if ( node.paramTypes != null )
             return node.paramTypes;
@@ -998,7 +1126,26 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
         return paramTypes;
     }
 
+    public String [] getTypeDescriptors( BSHFormalParameters node, String defaultPackage )
+    {
+        if ( node.typeDescriptors != null )
+            return node.typeDescriptors;
 
+        node.insureParsed();
+        String [] typeDesc = new String[node.numArgs];
+
+        for(int i=0; i<node.numArgs; i++)
+        {
+            BSHFormalParameter param = (BSHFormalParameter)node.jjtGetChild(i);
+            typeDesc[i] = getFormalParameterTypeDescriptor(param, defaultPackage );
+        }
+
+        node.typeDescriptors = typeDesc;
+        return typeDesc;
+    }
+
+
+    @Override
     public Object visit(BSHForStatement node) {
         int i = 0;
         if(node.hasForInit)
@@ -1086,6 +1233,7 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
     }
 
 
+    @Override
     public Object visit(BSHIfStatement node) {
         Object ret = null;
 
@@ -1103,6 +1251,7 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
     }
 
 
+    @Override
     public Object visit(BSHImportDeclaration node) {
         NameSpace namespace = callstack.top();
         if ( node.superImport )
@@ -1117,8 +1266,7 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
             {
                 if ( node.importPackage )
                 {
-                    Class clas = ((BSHAmbiguousName)node.jjtGetChild(0)).toClass(
-                            callstack, interpreter );
+                    Class clas = ambiguousNameToClass(((BSHAmbiguousName)node.jjtGetChild(0)));
                     namespace.importStatic( clas );
                 } else
                     throw new EvalError(
@@ -1138,6 +1286,7 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
     }
 
 
+    @Override
     public Object visit(BSHLiteral node) {
         if (node.value == null)
             throw new InterpreterError("Null in bsh literal: "+node.value);
@@ -1146,6 +1295,7 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
     }
 
 
+    @Override
     public Object visit(BSHMethodDeclaration node) {
         node.returnType = evalMethodReturnType(node);
         evalNodes(node);
@@ -1175,7 +1325,7 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
         if ( node.isVoid )
             return Void.TYPE;
         else
-            return getTypeNode(node).getType(this);
+            return getType(getTypeNode(node));
     }
 
 
@@ -1189,8 +1339,8 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
         if ( node.isVoid )
             return "V";
         else
-            return getTypeNode(node).getTypeDescriptor(
-                    callstack, interpreter, defaultPackage );
+            return getTypeDescriptor(getTypeNode(node),
+                    defaultPackage);
     }
 
 
@@ -1231,8 +1381,7 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
 
         // validate that the throws names are class names
         for(int i=node.firstThrowsClause; i<node.numThrows+node.firstThrowsClause; i++)
-            ((BSHAmbiguousName)node.jjtGetChild(i)).toClass(
-                    callstack, interpreter );
+            ambiguousNameToClass(((BSHAmbiguousName)node.jjtGetChild(i)) );
 
         node.paramsNode.accept(this);
 
@@ -1258,6 +1407,7 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
     }
 
 
+    @Override
     public Object visit(BSHMethodInvocation node) {
         NameSpace namespace = callstack.top();
         BSHAmbiguousName nameNode = node.getNameNode();
@@ -1270,13 +1420,13 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
             return Primitive.VOID;
 
         Name name = nameNode.getName(namespace);
-        Object[] args = node.getArgsNode().getArguments(this);
+        Object[] args = getArguments(node.getArgsNode());
 
-// This try/catch block is replicated is BSHPrimarySuffix... need to
-// factor out common functionality...
-// Move to Reflect?
+        // This try/catch block is replicated is BSHPrimarySuffix... need to
+        // factor out common functionality...
+        // Move to Reflect?
         try {
-            return name.invokeMethod( interpreter, args, callstack, node);
+            return name.invokeMethod( this, args, node);
         } catch ( ReflectError e ) {
             throw new EvalError(
                     "Error in method invocation: " + e.getMessage(),
@@ -1305,6 +1455,7 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
     }
 
 
+    @Override
     public Object visit(BSHPackageDeclaration node) {
         BSHAmbiguousName name = (BSHAmbiguousName)node.jjtGetChild(0);
         NameSpace namespace = callstack.top();
@@ -1357,11 +1508,9 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
         if ( obj instanceof SimpleNode )
             if ( obj instanceof BSHAmbiguousName)
                 if ( toLHS )
-                    obj = ((BSHAmbiguousName)obj).toLHS(
-                            callstack, interpreter);
+                    obj = ambiguousNameToLHS(((BSHAmbiguousName)obj));
                 else
-                    obj = ((BSHAmbiguousName)obj).toObject(
-                            callstack, interpreter);
+                    obj = ambiguousNameToObject(((BSHAmbiguousName)obj));
             else
                 // Some arbitrary kind of node
                 if ( toLHS )
@@ -1386,6 +1535,7 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
     }
 
 
+    @Override
     public Object visit(BSHPrimaryExpression node) {
         return evalPrimaryExpr(node, false);
     }
@@ -1403,7 +1553,7 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
                     throw new EvalError("Can't assign .class",
                             node, callstack );
                 NameSpace namespace = callstack.top();
-                return ((BSHType)obj).getType(this);
+                return getType(((BSHType)obj));
             } else
                 throw new EvalError(
                         "Attempt to use .class suffix on non class.",
@@ -1423,7 +1573,7 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
           */
         if ( obj instanceof SimpleNode )
             if ( obj instanceof BSHAmbiguousName)
-                obj = ((BSHAmbiguousName)obj).toObject(callstack, interpreter);
+                obj = ambiguousNameToObject(((BSHAmbiguousName)obj));
             else
                 obj = ((SimpleNode)obj).accept(this);
         else
@@ -1466,8 +1616,7 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
          Field access, .length on array, or a method invocation
          Must handle toLHS case for each.
      */
-    private Object doName( BSHPrimarySuffix node,
-            Object obj, boolean toLHS)
+    private Object doName( BSHPrimarySuffix node, Object obj, boolean toLHS)
             throws EvalError, ReflectError, InvocationTargetException
     {
         try {
@@ -1488,7 +1637,7 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
 
             // Method invocation
             // (LHS or non LHS evaluation can both encounter method calls)
-            Object[] oa = ((BSHArguments)node.jjtGetChild(0)).getArguments(this);
+            Object[] oa = getArguments(((BSHArguments)node.jjtGetChild(0)));
 
             // TODO:
             // Note: this try/catch block is copied from BSHMethodInvocation
@@ -1497,7 +1646,7 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
             // maybe move this to Reflect ?
             try {
                 return Reflect.invokeObjectMethod(
-                        obj, node.field, oa, interpreter, callstack, node );
+                        obj, node.field, oa, this, node );
             } catch ( ReflectError e ) {
                 throw new EvalError(
                         "Error in method invocation: " + e.getMessage(),
@@ -1595,18 +1744,22 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
         }
     }
 
+
+    @Override
     public Object visit(BSHPrimarySuffix node) {
         throw new InterpreterError(
                 "Unimplemented or inappropriate for BSHPrimarySuffix class.", node);
     }
 
 
+    @Override
     public Object visit(BSHPrimitiveType node) {
         throw new InterpreterError(
                 "Unimplemented or inappropriate for BSHPrimitiveType class.", node);
     }
 
 
+    @Override
     public Object visit(BSHReturnStatement node) {
         Object value;
         if(node.jjtGetNumChildren() > 0)
@@ -1618,12 +1771,14 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
     }
 
 
+    @Override
     public Object visit(BSHReturnType node) {
         throw new InterpreterError(
                 "Unimplemented or inappropriate for BSHPrimarySuffix class.");
     }
 
 
+    @Override
     public Object visit(BSHStatementExpressionList node) {
         int n = node.jjtGetNumChildren();
         for(int i=0; i<n; i++)
@@ -1635,6 +1790,7 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
     }
 
 
+    @Override
     public Object visit(BSHSwitchLabel node) {
         if ( node.isDefault )
             return null; // should probably error
@@ -1643,6 +1799,7 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
     }
 
 
+    @Override
     public Object visit(BSHSwitchStatement node) {
         int numchild = node.jjtGetNumChildren();
         int child = 0;
@@ -1668,11 +1825,7 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
         {
             // if label is default or equals switchVal
             if ( label.isDefault
-                    || node.primitiveEquals(
-                    switchVal, label.accept(this),
-                    callstack, switchExp)
-                    )
-            {
+                    || primitiveEquals(node, switchVal, label.accept(this), switchExp) )  {
                 // execute nodes, skipping labels, until a break or return
                 while ( child < numchild )
                 {
@@ -1709,7 +1862,32 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
             return Primitive.VOID;
     }
 
+    /**
+     Helper method for testing equals on two primitive or boxable objects.
+     yuck: factor this out into Primitive.java
+     */
+    public boolean primitiveEquals( BSHSwitchStatement node,
+            Object switchVal, Object targetVal,
+            SimpleNode switchExp  )
+            throws EvalError
+    {
+        if ( switchVal instanceof Primitive || targetVal instanceof Primitive )
+            try {
+                // binaryOperation can return Primitive or wrapper type
+                Object result = Primitive.binaryOperation(
+                        switchVal, targetVal, ParserConstants.EQ );
+                result = Primitive.unwrap( result );
+                return result.equals( Boolean.TRUE );
+            } catch ( UtilEvalError e ) {
+                throw e.toEvalError(
+                        "Switch value: "+switchExp.getText()+": ",
+                        node, callstack );
+            }
+        else
+            return switchVal.equals( targetVal );
+    }
 
+    @Override
     public Object visit(BSHTernaryExpression node) {
         SimpleNode
                 cond = (SimpleNode)node.jjtGetChild(0),
@@ -1723,6 +1901,7 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
     }
 
 
+    @Override
     public Object visit(BSHThrowStatement node) {
         Object obj = ((SimpleNode)node.jjtGetChild(0)).accept(this);
 
@@ -1736,6 +1915,8 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
         throw new TargetError( (Exception)obj, node, callstack );
     }
 
+
+    @Override
     public Object visit(BSHTryStatement node) {
         BSHBlock tryBlock = ((BSHBlock)node.jjtGetChild(0));
 
@@ -1881,16 +2062,120 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
             return Primitive.VOID;
     }
 
+
+    @Override
     public Object visit(BSHType node) {
         throw new InterpreterError(
                 "Unimplemented or inappropriate for BSHType class.", node);
     }
 
+
+    /**
+     Returns a class descriptor for this type.
+     If the type is an ambiguous name (object type) evaluation is
+     attempted through the namespace in order to resolve imports.
+     If it is not found and the name is non-compound we assume the default
+     package for the name.
+     */
+    public String getTypeDescriptor( BSHType node, String defaultPackage )
+    {
+        // return cached type if available
+        if ( node.descriptor != null )
+            return node.descriptor;
+
+        String descriptor;
+        //  first typeNode will either be PrimitiveType or AmbiguousName
+        SimpleNode typeNode = node.getTypeNode();
+        if ( typeNode instanceof BSHPrimitiveType)
+            descriptor = BshInterpreterUtil.getTypeDescriptor( ((BSHPrimitiveType)typeNode).type );
+        else
+        {
+            String clasName = ((BSHAmbiguousName)typeNode).text;
+            BshClassManager bcm = interpreter.getClassManager();
+            // Note: incorrect here - we are using the hack in bsh class
+            // manager that allows lookup by base name.  We need to eliminate
+            // this limitation by working through imports.  See notes in class
+            // manager.
+            String definingClass = bcm.getClassBeingDefined( clasName );
+
+            Class clas = null;
+            if ( definingClass == null )
+            {
+                try {
+                    clas = ambiguousNameToClass(((BSHAmbiguousName)typeNode) );
+                } catch ( EvalError e ) {
+                    //throw new InterpreterError("unable to resolve type: "+e);
+                    // ignore and try default package
+                    //System.out.println("BSHType: "+typeNode+" class not found");
+                }
+            } else
+                clasName = definingClass;
+
+            if ( clas != null )
+            {
+                //System.out.println("found clas: "+clas);
+                descriptor = BshInterpreterUtil.getTypeDescriptor( clas );
+            }else
+            {
+                if ( defaultPackage == null || Name.isCompound( clasName ) )
+                    descriptor = "L" + clasName.replace('.','/') + ";";
+                else
+                    descriptor =
+                            "L"+defaultPackage.replace('.','/')+"/"+clasName + ";";
+            }
+        }
+
+        for(int i=0; i<node.arrayDims; i++)
+            descriptor = "["+descriptor;
+
+        node.descriptor = descriptor;
+        //System.out.println("BSHType: returning descriptor: "+descriptor);
+        return descriptor;
+    }
+
+
+    public Class getType(BSHType tnode)
+            throws EvalError
+    {
+        // return cached type if available
+        if ( tnode.type != null )
+            return tnode.type;
+
+        //  first node will either be PrimitiveType or AmbiguousName
+        SimpleNode node = tnode.getTypeNode();
+        if ( node instanceof BSHPrimitiveType )
+            tnode.baseType = ((BSHPrimitiveType)node).getType();
+        else
+            tnode.baseType = ambiguousNameToClass(((BSHAmbiguousName)node));
+
+        if ( tnode.arrayDims > 0 ) {
+            try {
+                // Get the type by constructing a prototype array with
+                // arbitrary (zero) length in each dimension.
+                int[] dims = new int[tnode.arrayDims]; // int array default zeros
+                Object obj = Array.newInstance(tnode.baseType, dims);
+                tnode.type = obj.getClass();
+            } catch(Exception e) {
+                throw new EvalError("Couldn't construct array type",
+                        tnode, callstack );
+            }
+        } else
+            tnode.type = tnode.baseType;
+
+        // hack... sticking to first interpreter that resolves this
+        // see comments on type instance variable
+        interpreter.getClassManager().addListener(tnode);
+
+        return tnode.type;
+    }
+
+
+    @Override
     public Object visit(BSHTypedVariableDeclaration node) {
         try {
             NameSpace namespace = callstack.top();
             BSHType typeNode = node.getTypeNode();
-            Class type = typeNode.getType(this);
+            Class type = getType(typeNode);
 
             BSHVariableDeclarator [] bvda = node.getDeclarators();
             for (int i = 0; i < bvda.length; i++)
@@ -1915,7 +2200,15 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
         return Primitive.VOID;
     }
 
+    public Class evalType( BSHTypedVariableDeclaration node )
+            throws EvalError
+    {
+        BSHType typeNode = node.getTypeNode();
+        return getType( typeNode );
+    }
 
+
+    @Override
     public Object visit(BSHUnaryExpression node) {
         SimpleNode simpleNode = (SimpleNode)node.jjtGetChild(0);
 
@@ -1980,11 +2273,15 @@ public class BshEvaluatingVisitor extends BshNodeVisitor<Object> {
         return value;
     }
 
+
+    @Override
     public Object visit(BSHVariableDeclarator node) {
         throw new InterpreterError(
                 "Unimplemented or inappropriate for BSHVariableDeclarator class.");
     }
 
+
+    @Override
     public Object visit(BSHWhileStatement node) {
         int numChild = node.jjtGetNumChildren();
 

@@ -36,7 +36,7 @@ public class BSHFormalParameters extends SimpleNode
 	// unsafe caching of types
 	public Class [] paramTypes;
 	public int numArgs;
-	String [] typeDescriptors;
+	public String [] typeDescriptors;
 
 	public BSHFormalParameters(int id) { super(id); }
 
@@ -60,26 +60,6 @@ public class BSHFormalParameters extends SimpleNode
 	public String [] getParamNames() { 
 		insureParsed();
 		return paramNames;
-	}
-
-	public String [] getTypeDescriptors( 
-		BshEvaluatingVisitor visitor, String defaultPackage )
-	{
-		if ( typeDescriptors != null )
-			return typeDescriptors;
-
-		insureParsed();
-		String [] typeDesc = new String[numArgs];
-
-		for(int i=0; i<numArgs; i++)
-		{
-			BSHFormalParameter param = (BSHFormalParameter)jjtGetChild(i);
-			typeDesc[i] = param.getTypeDescriptor( 
-				visitor.getCallstack(), visitor.getInterpreter(), defaultPackage );
-		}
-
-		this.typeDescriptors = typeDesc;
-		return typeDesc;
 	}
 
     public <T> T accept(BshNodeVisitor<T> visitor) {

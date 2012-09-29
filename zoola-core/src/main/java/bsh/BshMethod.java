@@ -151,10 +151,10 @@ public class BshMethod
 		intended to be used in reflective style access to bsh scripts.
 	*/
 	public Object invoke( 
-		Object[] argValues, Interpreter interpreter ) 
+		Object[] argValues, BshEvaluatingVisitor visitor )
 		throws EvalError 
 	{
-		return invoke( argValues, interpreter, null, null, false );
+		return invoke( argValues, visitor, null, false );
 	}
 
 	/**
@@ -168,18 +168,18 @@ public class BshMethod
 			errors in EvalError exceptions.  If the node is null here error
 			messages may not be able to point to the precise location and text
 			of the error.
-		@param callstack is the callstack.  If callstack is null a new one
+		@param visitor is the callstack.  If callstack is null a new one
 			will be created with the declaring namespace of the method on top
 			of the stack (i.e. it will look for purposes of the method 
 			invocation like the method call occurred in the declaring 
 			(enclosing) namespace in which the method is defined).
 	*/
 	public Object invoke( 
-		Object[] argValues, Interpreter interpreter, CallStack callstack,
+		Object[] argValues, BshEvaluatingVisitor visitor,
 			SimpleNode callerInfo )
 		throws EvalError 
 	{
-		return invoke( argValues, interpreter, callstack, callerInfo, false );
+		return invoke( argValues, visitor, callerInfo, false );
 	}
 
 	/**
@@ -193,7 +193,7 @@ public class BshMethod
 			errors in EvalError exceptions.  If the node is null here error
 			messages may not be able to point to the precise location and text
 			of the error.
-		@param callstack is the callstack.  If callstack is null a new one
+		@param visitor is the callstack.  If callstack is null a new one
 			will be created with the declaring namespace of the method on top
 			of the stack (i.e. it will look for purposes of the method 
 			invocation like the method call occurred in the declaring 
@@ -204,7 +204,7 @@ public class BshMethod
 			to be used in constructors.
 	*/
 	public Object invoke(
-		Object[] argValues, Interpreter interpreter, CallStack callstack,
+		Object[] argValues, BshEvaluatingVisitor visitor,
 			SimpleNode callerInfo, boolean overrideNameSpace ) 
 		throws EvalError 
 	{
@@ -219,11 +219,11 @@ public class BshMethod
 					javaMethod, javaObject, argValues ); 
 			} catch ( ReflectError e ) {
 				throw new EvalError(
-					"Error invoking Java method: "+e, callerInfo, callstack );
+					"Error invoking Java method: "+e, callerInfo, visitor.getCallstack() );
 			} catch ( InvocationTargetException e2 ) {
 				throw new TargetError( 
 					"Exception invoking imported object method.", 
-					e2, callerInfo, callstack, true/*isNative*/ );
+					e2, callerInfo, visitor.getCallstack(), true/*isNative*/ );
 			}
 
 		// is this a syncrhonized method?
@@ -242,21 +242,21 @@ public class BshMethod
 						"Can't get class instance for synchronized method.");
 				}
 			} else
-				lock = declaringNameSpace.getThis(interpreter); // ???
+				lock = declaringNameSpace.getThis(visitor.getInterpreter()); // ???
 
 			synchronized( lock ) 
 			{
 				return invokeImpl( 
-					argValues, interpreter, callstack, 
+					argValues, visitor,
 					callerInfo, overrideNameSpace );
 			}
 		} else
-			return invokeImpl( argValues, interpreter, callstack, callerInfo,
+			return invokeImpl( argValues, visitor, callerInfo,
 				overrideNameSpace );
 	}
 
 	private Object invokeImpl(
-		Object[] argValues, Interpreter interpreter, CallStack callstack,
+		Object[] argValues, BshEvaluatingVisitor visitor,
 			SimpleNode callerInfo, boolean overrideNameSpace ) 
 		throws EvalError 
 	{
@@ -264,8 +264,9 @@ public class BshMethod
 		Class [] paramTypes = getParameterTypes();
 
 		// If null callstack
-		if ( callstack == null )
-			callstack = new CallStack( declaringNameSpace );
+		if ( visitor.getCallstack() == null )
+            visitor = new BshEvaluatingVisitor(new CallStack(declaringNameSpace), visitor.getInterpreter());
+			//callstack = new CallStack( declaringNameSpace );
 
 		if ( argValues == null )
 			argValues = new Object [] { };
@@ -289,13 +290,13 @@ public class BshMethod
 		*/
 			throw new EvalError( 
 				"Wrong number of arguments for local method: " 
-				+ name, callerInfo, callstack );
+				+ name, callerInfo, visitor.getCallstack() );
 		}
 
 		// Make the local namespace for the method invocation
 		NameSpace localNameSpace;
 		if ( overrideNameSpace )
-			localNameSpace = callstack.top();
+			localNameSpace = visitor.getCallstack().top();
 		else
 		{
 			localNameSpace = new NameSpace( declaringNameSpace, name );
@@ -320,14 +321,14 @@ public class BshMethod
 						"Invalid argument: " 
 						+ "`"+paramNames[i]+"'" + " for method: " 
 						+ name + " : " + 
-						e.getMessage(), callerInfo, callstack );
+						e.getMessage(), callerInfo, visitor.getCallstack() );
 				}
 				try {
 					localNameSpace.setTypedVariable( paramNames[i], 
 						paramTypes[i], argValues[i], null/*modifiers*/);
 				} catch ( UtilEvalError e2 ) {
 					throw e2.toEvalError( "Typed method parameter assignment", 
-						callerInfo, callstack  );
+						callerInfo, visitor.getCallstack()  );
 				}
 			} 
 			// Set untyped variable
@@ -338,31 +339,31 @@ public class BshMethod
 					throw new EvalError(
 						"Undefined variable or class name, parameter: " +
 						paramNames[i] + " to method: " 
-						+ name, callerInfo, callstack );
+						+ name, callerInfo, visitor.getCallstack() );
 				else
 					try {
 						localNameSpace.setLocalVariable(
 							paramNames[i], argValues[i],
-							interpreter.getStrictJava() );
+							visitor.getInterpreter().getStrictJava() );
 					} catch ( UtilEvalError e3 ) {
-						throw e3.toEvalError( callerInfo, callstack );
+						throw e3.toEvalError( callerInfo, visitor.getCallstack() );
 					}
 			}
 		}
 
 		// Push the new namespace on the call stack
 		if ( !overrideNameSpace )
-			callstack.push( localNameSpace );
+			visitor.getCallstack().push( localNameSpace );
 
 		// Invoke the block, overriding namespace with localNameSpace
-        Object ret = new BshEvaluatingVisitor(callstack,  interpreter).evalBlock(methodBody, true);
+        Object ret = visitor.evalBlock(methodBody, true);
 
 		// save the callstack including the called method, just for error mess
-		CallStack returnStack = callstack.copy();
+		CallStack returnStack = visitor.getCallstack().copy();
 
 		// Get back to caller namespace
 		if ( !overrideNameSpace )
-			callstack.pop();
+			visitor.getCallstack().pop();
 
 		ReturnControl retControl = null;
 		if ( ret instanceof ReturnControl )
@@ -404,7 +405,7 @@ public class BshMethod
 					node = retControl.returnPoint;
 				throw e.toEvalError(
 					"Incorrect type returned from method: " 
-					+ name + e.getMessage(), node, callstack );
+					+ name + e.getMessage(), node, visitor.getCallstack() );
 			}
 		}
 

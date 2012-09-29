@@ -1,6 +1,7 @@
 package bsh.interpreter;
 
 import bsh.*;
+import bsh.ast.BSHAssignment;
 import bsh.ast.SimpleNode;
 
 /**
@@ -76,5 +77,62 @@ public class BshInterpreterUtil {
         return index;
     }
 
+    public static Object operation(BSHAssignment node, Object lhs, Object rhs, int kind )
+            throws UtilEvalError
+    {
+        /*
+              Implement String += value;
+              According to the JLS, value may be anything.
+              In BeanShell, we'll disallow VOID (undefined) values.
+              (or should we map them to the empty string?)
+          */
+        if ( lhs instanceof String && rhs != Primitive.VOID ) {
+            if ( kind != ParserConstants.PLUS )
+                throw new UtilEvalError(
+                        "Use of non + operator with String LHS" );
+
+            return (String)lhs + rhs;
+        }
+
+        if ( lhs instanceof Primitive || rhs instanceof Primitive )
+            if(lhs == Primitive.VOID || rhs == Primitive.VOID)
+                throw new UtilEvalError(
+                        "Illegal use of undefined object or 'void' literal" );
+            else if ( lhs == Primitive.NULL || rhs == Primitive.NULL )
+                throw new UtilEvalError(
+                        "Illegal use of null object or 'null' literal" );
+
+
+        if( (lhs instanceof Boolean || lhs instanceof Character ||
+                lhs instanceof Number || lhs instanceof Primitive) &&
+                (rhs instanceof Boolean || rhs instanceof Character ||
+                        rhs instanceof Number || rhs instanceof Primitive) )
+        {
+            return Primitive.binaryOperation(lhs, rhs, kind);
+        }
+
+        throw new UtilEvalError("Non primitive value in operator: " +
+                lhs.getClass() + " " + node.tokenImage[kind] + " " + rhs.getClass() );
+    }
+
+    public static String getTypeDescriptor( Class clas )
+    {
+        if ( clas == Boolean.TYPE ) return "Z";
+        if ( clas == Character.TYPE ) return "C";
+        if ( clas == Byte.TYPE ) return "B";
+        if ( clas == Short.TYPE ) return "S";
+        if ( clas == Integer.TYPE ) return "I";
+        if ( clas == Long.TYPE ) return "J";
+        if ( clas == Float.TYPE ) return "F";
+        if ( clas == Double.TYPE ) return "D";
+        if ( clas == Void.TYPE ) return "V";
+        // Is getName() ok?  test with 1.1
+        String name = clas.getName().replace('.','/');
+
+        if ( name.startsWith("[") || name.endsWith(";") )
+            return name;
+        else
+            return "L"+ name.replace('.','/') +";";
+    }
 
 }

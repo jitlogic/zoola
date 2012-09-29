@@ -180,7 +180,7 @@ public final class ClassGenerator {
             if (node instanceof BSHTypedVariableDeclaration) {
                 BSHTypedVariableDeclaration tvd = (BSHTypedVariableDeclaration) node;
                 Modifiers modifiers = tvd.modifiers;
-                String type = tvd.getTypeDescriptor(visitor.getCallstack(), visitor.getInterpreter(), defaultPackage);
+                String type = visitor.getTypeDescriptor(tvd.getTypeNode(), defaultPackage);
                 BSHVariableDeclarator[] vardec = tvd.getDeclarators();
                 for (BSHVariableDeclarator aVardec : vardec) {
                     String name = aVardec.name;
@@ -211,7 +211,7 @@ public final class ClassGenerator {
                 String returnType = visitor.getReturnTypeDescriptor(md, defaultPackage);
                 BSHReturnType returnTypeNode = visitor.getReturnTypeNode(md);
                 BSHFormalParameters paramTypesNode = md.paramsNode;
-                String[] paramTypes = paramTypesNode.getTypeDescriptors(visitor, defaultPackage);
+                String[] paramTypes = visitor.getTypeDescriptors(paramTypesNode, defaultPackage);
 
                 DelayedEvalBshMethod bm = new DelayedEvalBshMethod(name, returnType, returnTypeNode,
                         md.paramsNode.getParamNames(), paramTypes, paramTypesNode, md.blockNode,
