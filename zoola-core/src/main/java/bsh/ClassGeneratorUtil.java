@@ -26,6 +26,7 @@ package bsh;
 
 import bsh.ast.*;
 import bsh.interpreter.BshEvaluatingVisitor;
+import bsh.interpreter.BshInterpreterUtil;
 import org.objectweb.asm.*;
 import org.objectweb.asm.Type;
 
@@ -827,7 +828,7 @@ public class ClassGeneratorUtil implements Opcodes {
 		Interpreter interpreter = classStaticThis.declaringInterpreter;
 
 		try {
-			args = argsNode.getArguments(new BshEvaluatingVisitor(callstack, interpreter));
+			args = new BshEvaluatingVisitor(callstack, interpreter).getArguments(argsNode);
 		} catch (EvalError e) {
 			throw new InterpreterError("Error evaluating constructor args: " + e);
 		}
@@ -986,7 +987,8 @@ public class ClassGeneratorUtil implements Opcodes {
 
 			// Evaluate the constructor
 			if (constructor != null) {
-				constructor.invoke(args, interpreter, callstack, null/*callerInfo*/, false/*overrideNameSpace*/);
+				constructor.invoke(args, new BshEvaluatingVisitor(callstack,  interpreter),
+                        null/*callerInfo*/, false/*overrideNameSpace*/);
 			}
 		} catch (Throwable e) {
 			if (e instanceof TargetError) {
@@ -1041,7 +1043,7 @@ public class ClassGeneratorUtil implements Opcodes {
 	private static String[] getTypeDescriptors(Class[] cparams) {
 		String[] sa = new String[cparams.length];
 		for (int i = 0; i < sa.length; i++) {
-			sa[i] = BSHType.getTypeDescriptor(cparams[i]);
+			sa[i] = BshInterpreterUtil.getTypeDescriptor(cparams[i]);
 		}
 		return sa;
 	}

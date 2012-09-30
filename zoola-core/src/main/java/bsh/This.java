@@ -26,6 +26,7 @@
 package bsh;
 
 import bsh.ast.SimpleNode;
+import bsh.interpreter.BshEvaluatingVisitor;
 
 import java.lang.reflect.*;
 import java.util.Map;
@@ -341,7 +342,7 @@ public final class This implements java.io.Serializable, Runnable
 		}
 
 		if ( bshMethod != null )
-			return bshMethod.invoke( args, interpreter, callstack, callerInfo );
+			return bshMethod.invoke( args, new BshEvaluatingVisitor(callstack,  interpreter), callerInfo );
 
 		/*
 			No scripted method of that name.
@@ -393,7 +394,7 @@ public final class This implements java.io.Serializable, Runnable
 		// Call script "invoke( String methodName, Object [] args );
 		if ( bshMethod != null )
 			return bshMethod.invoke( new Object [] { methodName, args }, 
-				interpreter, callstack, callerInfo );
+				new BshEvaluatingVisitor(callstack,  interpreter), callerInfo );
 
 		throw new EvalError("Method " + 
 			StringUtil.methodString( methodName, types ) +

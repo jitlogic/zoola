@@ -37,13 +37,6 @@ public class BSHTypedVariableDeclaration extends SimpleNode
 		return ((BSHType)jjtGetChild(0));
 	}
 
-	public Class evalType( CallStack callstack, Interpreter interpreter )
-		throws EvalError
-	{
-		BSHType typeNode = getTypeNode();
-		return typeNode.getType( new BshEvaluatingVisitor(callstack, interpreter) );
-	}
-
 	public BSHVariableDeclarator[] getDeclarators()
 	{
 		int n = jjtGetNumChildren();
@@ -54,13 +47,6 @@ public class BSHTypedVariableDeclaration extends SimpleNode
 			bvda[i-start] = (BSHVariableDeclarator)jjtGetChild(i);
 		}
 		return bvda;
-	}
-
-	public String getTypeDescriptor(
-		CallStack callstack, Interpreter interpreter, String defaultPackage ) 
-	{ 
-		return getTypeNode().getTypeDescriptor( 
-			callstack, interpreter, defaultPackage );
 	}
 
     public <T> T accept(BshNodeVisitor<T> visitor) {

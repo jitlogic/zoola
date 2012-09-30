@@ -38,48 +38,6 @@ public class BSHAmbiguousName extends SimpleNode
         return namespace.getNameResolver( text );
     }
 
-    public Object toObject( CallStack callstack, Interpreter interpreter )
-		throws EvalError
-    {
-		return toObject( callstack, interpreter, false );
-    }
-
-    public Object toObject(
-		CallStack callstack, Interpreter interpreter, boolean forceClass ) 
-		throws EvalError
-    {
-		try {
-        	return 
-				getName( callstack.top() ).toObject( 
-					callstack, interpreter, forceClass );
-		} catch ( UtilEvalError e ) {
-			throw e.toEvalError( this, callstack );
-		}
-    }
-
-    public Class toClass( CallStack callstack, Interpreter interpreter ) 
-		throws EvalError
-    {
-		try {
-        	return getName( callstack.top() ).toClass();
-		} catch ( ClassNotFoundException e ) {
-			throw new EvalError( e.getMessage(), this, callstack, e );
-		} catch ( UtilEvalError e2 ) {
-			// ClassPathException is a type of UtilEvalError
-			throw e2.toEvalError( this, callstack );
-		}
-    }
-
-    public LHS toLHS( CallStack callstack, Interpreter interpreter)
-		throws EvalError
-    {
-		try {
-			return getName( callstack.top() ).toLHS( callstack, interpreter );
-		} catch ( UtilEvalError e ) {
-			throw e.toEvalError( this, callstack );
-		}
-    }
-
 	public String toString() {
 		return "AmbigousName: "+text;
 	}

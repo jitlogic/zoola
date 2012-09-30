@@ -26,6 +26,7 @@
 package	bsh;
 
 import bsh.ast.SimpleNode;
+import bsh.interpreter.BshEvaluatingVisitor;
 
 import java.io.Serializable;
 import java.util.List;
@@ -230,7 +231,7 @@ public class NameSpace implements Serializable, BshClassManager.Listener, NameSo
 		throws UtilEvalError 
 	{
 		CallStack callstack = new CallStack( this );
-		return getNameResolver( name ).toObject( callstack, interpreter );
+		return getNameResolver( name ).toObject( new BshEvaluatingVisitor(callstack, interpreter) );
 	}
 
 	/**
@@ -717,8 +718,8 @@ public class NameSpace implements Serializable, BshClassManager.Listener, NameSo
     }
 
 	/**
-		@see #getMethod( String, Class [], boolean )
-		@see #getMethod( String, Class [] )
+		see #getMethod( String, Class [], boolean )
+		see #getMethod( String, Class [] )
 	*/
     public BshMethod getMethod( String name, Class [] sig ) 
 		throws UtilEvalError
@@ -1266,7 +1267,7 @@ public class NameSpace implements Serializable, BshClassManager.Listener, NameSo
 		required.  The method will appear as if called externally from Java.
 		<p>
 
-		@see bsh.This.invokeMethod( 
+		see bsh.This.invokeMethod(
 			String methodName, Object [] args, Interpreter interpreter, 
 			CallStack callstack, SimpleNode callerInfo, boolean )
 	*/
@@ -1281,7 +1282,7 @@ public class NameSpace implements Serializable, BshClassManager.Listener, NameSo
 	/**
 		This method simply delegates to This.invokeMethod();
 		<p>
-		@see bsh.This.invokeMethod( 
+		see bsh.This.invokeMethod(
 			String methodName, Object [] args, Interpreter interpreter, 
 			CallStack callstack, SimpleNode callerInfo )
 	*/
