@@ -25,6 +25,7 @@
 package bsh;
 
 import bsh.ast.SimpleNode;
+import bsh.interpreter.BshEvaluatingVisitor;
 
 import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
@@ -56,22 +57,22 @@ public final class Reflect {
 	 *
 	 * @return the result of the method call
 	 */
-	public static Object invokeObjectMethod(Object object, String methodName, Object[] args, Interpreter interpreter, CallStack callstack, SimpleNode callerInfo) throws ReflectError, EvalError, InvocationTargetException {
+	public static Object invokeObjectMethod(Object object, String methodName, Object[] args, BshEvaluatingVisitor visitor, SimpleNode callerInfo) throws ReflectError, EvalError, InvocationTargetException {
 		// Bsh scripted object
 		if (object instanceof This && !This.isExposedThisMethod(methodName)) {
-			return ((This) object).invokeMethod(methodName, args, interpreter, callstack, callerInfo, false/*delcaredOnly*/);
+			return ((This) object).invokeMethod(methodName, args, visitor.getInterpreter(), visitor.getCallstack(), callerInfo, false/*delcaredOnly*/);
 		}
 
 		// Plain Java object, find the java method
 		try {
-			BshClassManager bcm = interpreter == null ? null : interpreter.getClassManager();
+			BshClassManager bcm = visitor.getInterpreter() == null ? null : visitor.getInterpreter().getClassManager();
 			Class clas = object.getClass();
 
 			Method method = resolveExpectedJavaMethod(bcm, clas, object, methodName, args, false);
 
 			return invokeMethod(method, object, args);
 		} catch (UtilEvalError e) {
-			throw e.toEvalError(callerInfo, callstack);
+			throw e.toEvalError(callerInfo, visitor.getCallstack());
 		}
 	}
 
@@ -830,13 +831,13 @@ public final class Reflect {
 	 * This method adds the arguments and invokes the static method, returning
 	 * the result.
 	 */
-	public static Object invokeCompiledCommand(Class commandClass, Object[] args, Interpreter interpreter, CallStack callstack) throws UtilEvalError {
+	public static Object invokeCompiledCommand(Class commandClass, Object[] args, BshEvaluatingVisitor visitor) throws UtilEvalError {
 		// add interpereter and namespace to args list
 		Object[] invokeArgs = new Object[args.length + 2];
-		invokeArgs[0] = interpreter;
-		invokeArgs[1] = callstack;
+		invokeArgs[0] = visitor.getInterpreter();
+		invokeArgs[1] = visitor.getCallstack();
 		System.arraycopy(args, 0, invokeArgs, 2, args.length);
-		BshClassManager bcm = interpreter.getClassManager();
+		BshClassManager bcm = visitor.getInterpreter().getClassManager();
 		try {
 			return Reflect.invokeStaticMethod(bcm, commandClass, "invoke", invokeArgs);
 		} catch (InvocationTargetException e) {

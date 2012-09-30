@@ -877,8 +877,7 @@ public class Interpreter
 		try {
 			if ( Name.isCompound( name ) ) 
 			{
-				LHS lhs = globalNameSpace.getNameResolver( name ).toLHS( 
-					callstack, this );
+				LHS lhs = globalNameSpace.getNameResolver( name ).toLHS( new BshEvaluatingVisitor(callstack,  this)	);
 				lhs.assign( value, false );
 			} else // optimization for common case
 				globalNameSpace.setVariable( name, value, false );
@@ -928,7 +927,7 @@ public class Interpreter
 		CallStack callstack = new CallStack();
 		try {
 			LHS lhs = globalNameSpace.getNameResolver( name ).toLHS( 
-				callstack, this );
+				new BshEvaluatingVisitor(callstack, this) );
 
 			if ( lhs.type != LHS.VARIABLE )
 				throw new EvalError("Can't unset, not a variable: "+name, 

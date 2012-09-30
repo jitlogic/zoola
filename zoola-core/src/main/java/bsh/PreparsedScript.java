@@ -25,6 +25,7 @@
 package bsh;
 
 import bsh.classpath.ClassManagerImpl;
+import bsh.interpreter.BshEvaluatingVisitor;
 
 import java.io.*;
 import java.util.Map;
@@ -86,7 +87,7 @@ public class PreparsedScript {
 				throw new EvalError("cannot set variable '" + entry.getKey() + '\'', null, null, e);
 			}
 		}
-		final Object result = method.invoke(new Object[0], _interpreter);
+		final Object result = method.invoke(new Object[0], new BshEvaluatingVisitor(null, _interpreter));
 		if (result instanceof Primitive) {
 			if (( (Primitive) result).getType() == Void.TYPE) {
 				return null;
